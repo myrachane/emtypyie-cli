@@ -398,6 +398,7 @@ function completer(line) {
 }
 
 function interactive() {
+  process.title = 'emtypyie cli';
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -440,6 +441,7 @@ function interactive() {
 }
 
 async function direct(args) {
+  process.title = 'emtypyie cli';
   const cmd = args[0]?.toLowerCase();
   const arg = args.slice(1).join(' ');
 
