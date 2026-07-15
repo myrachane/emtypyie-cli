@@ -223,10 +223,10 @@ async function doFlash(name) {
   console.log();
   console.log(t.retroWarn('  Re-downloading ') + t.retroAccent(proj.name || name) + t.retroWarn('...'));
   console.log();
-  const dest = path.join(process.cwd(), proj.filename || `${name}-setup.exe`);
-  if (fs.existsSync(dest)) {
-    fs.unlinkSync(dest);
-    console.log(t.retroDim('  Removed old file.'));
+  const dir = t.getDevDir(name.toLowerCase());
+  if (fs.existsSync(dir)) {
+    fs.rmSync(dir, { recursive: true, force: true });
+    console.log(t.retroDim('  Removed old files.'));
   }
   await getCommand.install(name.toLowerCase(), proj);
 }
@@ -241,10 +241,10 @@ function doRemove(name) {
     console.log(t.retroErr(`  Unknown project "${name}".`));
     return;
   }
-  const dest = path.join(process.cwd(), proj.filename || `${name}-setup.exe`);
-  if (fs.existsSync(dest)) {
-    fs.unlinkSync(dest);
-    console.log(t.retro('  Removed ') + t.retroDim(dest));
+  const dir = t.getDevDir(name.toLowerCase());
+  if (fs.existsSync(dir)) {
+    fs.rmSync(dir, { recursive: true, force: true });
+    console.log(t.retro('  Removed ') + t.retroDim(dir));
   } else {
     console.log(t.retroDim('  No local files found for ') + t.retroAccent(name));
   }
@@ -289,12 +289,17 @@ async function doIssue(arg) {
 }
 
 function runProject(name, proj) {
-  const dest = path.join(process.cwd(), proj.filename || `${name}-setup.exe`);
+  if (proj.run) {
+    console.log(t.retro(`  Launching ${t.retroAccent(proj.name || name)}...`));
+    execSync(`start "" "${proj.run}"`, { stdio: 'ignore' });
+    return;
+  }
+  const dest = path.join(t.getDevDir(name), proj.filename || `${name}-setup.exe`);
   if (!fs.existsSync(dest)) {
     console.log(t.retroErr(`  Project "${proj.name || name}" not downloaded yet. Use /get ${name} first.`));
     return;
   }
-  console.log(t.retro(`  Running ${t.retroAccent(proj.name || name)}...`));
+  console.log(t.retro(`  Running ${t.retroAccent(proj.name || name)} installer...`));
   execSync(`start "" "${dest}"`, { stdio: 'ignore' });
 }
 

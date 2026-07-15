@@ -1,6 +1,6 @@
 {
   "name": "emtypyie",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "EMTYPYIE CLI - Project manager and launcher",
   "main": "cli.js",
   "bin": {

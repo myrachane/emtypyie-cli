@@ -1,3 +1,4 @@
+const os = require('os');
 const https = require('https');
 const http = require('http');
 const fs = require('fs');
@@ -70,11 +71,12 @@ async function install(name, project) {
   }
 
   if (project.download) {
-    const dest = path.join(process.cwd(), project.filename || `${name}-setup.exe`);
+    const dest = path.join(t.getDevDir(name), project.filename || `${name}-setup.exe`);
 
     try {
       await download(project.download, dest);
-      console.log(`  ${t.retro('✓')} ${t.retroDim('Saved to')} ${t.retroAccent(dest)}`);
+      const rel = dest.replace(os.homedir(), '~');
+      console.log(`  ${t.retro('✓')} ${t.retroDim('Saved to')} ${t.retroAccent(rel)}`);
 
       if (project.postInstall) {
         project.postInstall(dest);

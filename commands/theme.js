@@ -14,6 +14,12 @@ const THEMES = {
   cyan: { main: '#22d3ee', dim: '#0891b2', accent: '#67e8f9', warn: '#fbbf24', err: '#f87171' },
 };
 
+function getDevDir(name) {
+  const dir = path.join(CONFIG_DIR, 'dev', name);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
 const t = {
   retro: null,
   retroDim: null,
@@ -23,6 +29,7 @@ const t = {
   current: 'slate',
   THEMES,
   apply,
+  getDevDir,
 };
 
 function apply(name) {
