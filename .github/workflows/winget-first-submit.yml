@@ -12,7 +12,9 @@ jobs:
       - name: Extract version
         id: version
         shell: bash
-        run: echo "VERSION=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Download wingetcreate
         run: Invoke-WebRequest -Uri "https://aka.ms/wingetcreate/latest" -OutFile "wingetcreate.exe"
