@@ -2,6 +2,7 @@ const chalk = require('chalk');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
+const bakafetch = require('./bakafetch');
 
 const CONFIG_DIR = path.join(os.homedir(), '.emtypyie');
 const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
@@ -30,6 +31,9 @@ const t = {
   THEMES,
   apply,
   getDevDir,
+  setBakafetchColor: bakafetch.setColor,
+  getBakafetchColor: bakafetch.getColor,
+  bakafetchColors: bakafetch.COLORS,
 };
 
 function apply(name) {

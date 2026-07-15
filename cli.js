@@ -6,17 +6,19 @@ const path = require('path');
 const { execSync, spawn } = require('child_process');
 const chalk = require('chalk');
 const getCommand = require('./commands/get');
+const auth = require('./commands/auth');
+const publish = require('./commands/publish');
 const bakafetch = require('./commands/bakafetch');
 
 const t = require('./commands/theme');
 
 const BANNER = `
-  ______ __  __ _________     _________     _______ ______ 
- |  ____|  \\/  |__   __\\ \\   / /  __ \\ \\   / /_   _|  ____|
- | |__  | \\  / |  | |   \\ \\_/ /| |__) \\ \\_/ /  | | | |__   
- |  __| | |\\/| |  | |    \\   / |  ___/ \\   /   | | |  __|  
- | |____| |  | |  | |     | |  | |      | |   _| |_| |____ 
- |______|_|  |_|  |_|     |_|  |_|      |_|  |_____|______|
+___________        __                         .__                  .__  .__ 
+\\_   _____/ ______/  |_ ___.__. ______ ___.__.|__| ____       ____ |  | |__|
+ |    __)_ /     \\   __<   |  | \\____ <   |  ||  |/ __ \\    _/ ___\\|  | |  |
+ |        \\  Y Y  \\  |  \\___  | |  |_> >___  ||  \\  ___/    \\  \\___|  |_|  |
+/_______  /__|_|  /__|  / ____| |   __// ____||__|\\___  > /\\ \\___  >____/__|
+        \\/      \\/      \\/      |__|   \\/             \\/  \\/     \\/ 
 `;
 
 const projects = {
@@ -84,7 +86,15 @@ async function handleCommand(cmd, arg, rl) {
       break;
 
     case 'wrap':
-      doWrap(arg);
+      await publish.doWrap(rl, arg);
+      break;
+
+    case 'setenv':
+      await auth.setenv(rl);
+      break;
+
+    case 'theme':
+      doTheme(arg);
       break;
 
     case 'clear':
@@ -134,10 +144,16 @@ function showHelp() {
   console.log(t.retro('  /rm <project>') + t.retroDim('      delete project files'));
   console.log(t.retro('  /issue <project>') + t.retroDim('   open issue tracker'));
   console.log(t.retro('  /issue <project> -m') + t.retroDim('  file a bug report'));
+  console.log(t.retro('  /setenv') + t.retroDim('            set env variables (tokens, creds)'));
+  console.log(t.retro('  /theme <name>') + t.retroDim('       change CLI color theme'));
+  console.log(t.retro('  /theme bakafetch <c>') + t.retroDim(' change bakafetch color'));
   console.log(t.retro('  /bakafetch') + t.retroDim('         system info with style'));
   console.log(t.retro('  /bf') + t.retroDim('               shortcut for /bakafetch'));
-  console.log(t.retro('  /wrap bakafetch <c>') + t.retroDim('  change bakafetch color'));
-  console.log(t.retro('  /wrap all <theme>') + t.retroDim('    change CLI theme'));
+  console.log(t.retro('  /wrap <dir>') + t.retroDim('        stage files in directory'));
+  console.log(t.retro('  /wrap <dir> --commit -m') + t.retroDim('  stage, commit & push'));
+  console.log(t.retro('  /wrap all') + t.retroDim('          stage all subdirectories'));
+  console.log(t.retro('  /wrap npm publish') + t.retroDim('   auto-bump & npm publish'));
+  console.log(t.retro('  /wrap repo "name"') + t.retroDim('   create/PR on GitHub'));
   console.log(t.retro('  /clear') + t.retroDim('              clear screen'));
   console.log(t.retro('  /update') + t.retroDim('            update emtypyie'));
   console.log(t.retro('  /list') + t.retroDim('              list projects'));
@@ -369,40 +385,35 @@ function doChangelog() {
   }
 }
 
-function doWrap(arg) {
+function doTheme(arg) {
   const parts = arg.trim().split(/\s+/);
-  if (parts.length < 2) {
-    console.log(t.retroDim('  Usage: ') + t.retro('/wrap bakafetch <color>'));
-    console.log(t.retroDim('  Usage: ') + t.retro('/wrap all <theme>'));
+  if (!arg) {
+    console.log(t.retroDim('  Usage: ') + t.retro('/theme <name>'));
+    console.log(t.retroDim('  Usage: ') + t.retro('/theme bakafetch <color>'));
     console.log(t.retroDim('  Themes: ') + t.retro(Object.keys(t.THEMES).join(', ')));
     console.log(t.retroDim('  Bakafetch colors: ') + t.retro(Object.keys(bakafetch.COLORS).join(', ')) + t.retroDim(' or hex'));
     return;
   }
-  if (parts[0].toLowerCase() === 'all') {
-    const theme = parts.slice(1).join(' ');
-    if (t.THEMES[theme]) {
-      t.apply(theme);
-      bakafetch.setColor(theme);
-      console.log(t.retro('  Theme set to ') + t.retroAccent(theme));
+  if (parts[0].toLowerCase() === 'bakafetch') {
+    const color = parts.slice(1).join(' ');
+    if (bakafetch.setColor(color)) {
+      console.log(t.retro('  Bakafetch color set to ') + chalk.hex(bakafetch.getColor())(color));
     } else {
-      console.log(t.retroErr('  Invalid theme. Use: ') + t.retro(Object.keys(t.THEMES).join(', ')));
+      console.log(t.retroErr('  Invalid color. Use: ') + t.retro(Object.keys(bakafetch.COLORS).join(', ')) + t.retroErr(' or hex like #ff8800'));
     }
     return;
   }
-  if (parts[0].toLowerCase() !== 'bakafetch') {
-    console.log(t.retroDim('  Usage: ') + t.retro('/wrap bakafetch <color>'));
-    console.log(t.retroDim('  Usage: ') + t.retro('/wrap all <theme>'));
-    return;
-  }
-  const color = parts.slice(1).join(' ');
-  if (bakafetch.setColor(color)) {
-    console.log(t.retro('  Bakafetch color set to ') + chalk.hex(bakafetch.getColor())(color));
+  const theme = arg.trim().toLowerCase();
+  if (t.THEMES[theme]) {
+    t.apply(theme);
+    bakafetch.setColor(theme);
+    console.log(t.retro('  Theme set to ') + t.retroAccent(theme));
   } else {
-    console.log(t.retroErr('  Invalid color. Use: ') + t.retro(Object.keys(bakafetch.COLORS).join(', ')) + t.retroErr(' or hex like #ff8800'));
+    console.log(t.retroErr('  Invalid theme. Use: ') + t.retro(Object.keys(t.THEMES).join(', ')));
   }
 }
 
-const COMMANDS = ['help', 'about', 'wiki', 'info', 'get', 'flash', 'rm', 'issue', 'bakafetch', 'bf', 'wrap', 'clear', 'update', 'list', 'docs', 'changelog', 'exit', 'quit'];
+const COMMANDS = ['help', 'about', 'wiki', 'setenv', 'theme', 'info', 'get', 'flash', 'rm', 'issue', 'bakafetch', 'bf', 'wrap', 'clear', 'update', 'list', 'docs', 'changelog', 'exit', 'quit'];
 
 function completer(line) {
   const input = line.replace(/^\//, '');
