@@ -8,11 +8,11 @@ const chalk = require('chalk');
 const getCommand = require('./commands/get');
 const bakafetch = require('./commands/bakafetch');
 
-const retro = chalk.hex('#33ff33');
-const retroDim = chalk.hex('#1a7a1a');
-const retroAccent = chalk.hex('#66ff66');
-const retroWarn = chalk.hex('#ffaa00');
-const retroErr = chalk.hex('#ff3333');
+const retro = chalk.hex('#e2e8f0');
+const retroDim = chalk.hex('#64748b');
+const retroAccent = chalk.hex('#38bdf8');
+const retroWarn = chalk.hex('#fbbf24');
+const retroErr = chalk.hex('#f87171');
 
 const BANNER = `
   ______ __  __ _________     _________     _______ ______ 
@@ -133,7 +133,7 @@ function showHelp() {
 function showAbout() {
   console.log();
   console.log(retroDim('  ─────────────────────────────'));
-  console.log(retro('  EMTYPYIE — Project Manager'));
+  console.log(retro('  emtypyie CLI'));
   console.log(retroDim('  ─────────────────────────────'));
   console.log();
   const pkg = require('./package.json');

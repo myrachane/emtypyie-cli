@@ -7,8 +7,8 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const chalk = require('chalk');
-const retro = chalk.hex('#33ff33');
-const retroDim = chalk.hex('#1a7a1a');
+const retro = chalk.hex('#e2e8f0');
+const retroDim = chalk.hex('#64748b');
 
 const PORT = 3000;
 const HOST = '127.0.0.1';

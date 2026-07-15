@@ -1,8 +1,8 @@
 const chalk = require('chalk');
 
-const retro = chalk.hex('#33ff33');
-const retroDim = chalk.hex('#1a7a1a');
-const retroAccent = chalk.hex('#66ff66');
+const retro = chalk.hex('#e2e8f0');
+const retroDim = chalk.hex('#64748b');
+const retroAccent = chalk.hex('#38bdf8');
 
 function show(projects) {
   console.log();
