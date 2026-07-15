@@ -213,7 +213,7 @@ let activeColor = 'cyan';
 let cachedGpu = null;
 
 function getColor() {
-  return activeColor;
+  return COLORS[activeColor] || activeColor;
 }
 
 function setColor(color) {
