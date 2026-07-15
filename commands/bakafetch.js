@@ -262,8 +262,6 @@ function padArt(line, targetWidth) {
 }
 
 function show() {
-  const platform = os.platform();
-  const release = os.release();
   const hostname = os.hostname();
   const uptime = os.uptime();
   const cpus = os.cpus();
@@ -281,44 +279,28 @@ function show() {
   const art = ASCII_ARTS[Math.floor(Math.random() * ASCII_ARTS.length)];
   const tsun = TSUNDERE_LINES[Math.floor(Math.random() * TSUNDERE_LINES.length)];
 
-  const maxArtWidth = Math.max(...art.map(l => artWidth(l)));
-  const labelWidth = 9;
-
-  const infoLines = [
-    { label: 'OS', value: `${getOsName()} (${release})` },
-    { label: 'HOST', value: hostname.toUpperCase() },
-    { label: 'KERNEL', value: `emtypyie cli v${require('../package.json').version}` },
-    { label: 'UPTIME', value: formatUptime(uptime) },
-    { label: 'SHELL', value: 'emtypyie' },
-    { label: 'CPU', value: `${cpuModel} (${cpuCores})` },
-    { label: 'GPU', value: getGpu() },
-    { label: 'MEMORY', value: `${fmtMem(usedMem)} / ${fmtMem(totalMem)}` },
-    { label: 'BUILD', value: getBuild() },
-  ];
+  const trimmed = art.map(l => l.trim());
+  const maxArtWidth = Math.max(...trimmed.map(l => artWidth(l)));
+  const termWidth = process.stdout.columns || 80;
+  const artPadding = Math.max(0, Math.floor((termWidth - maxArtWidth) / 2));
 
   console.log();
-  for (let i = 0; i < Math.max(art.length, infoLines.length + 2); i++) {
-    const artLine = i < art.length ? c(padArt(art[i], maxArtWidth)) : ' '.repeat(maxArtWidth);
-
-    let infoLine = '';
-    if (i === 0) {
-      infoLine = cBold('EMTYPYIE') + cDim('@') + c(hostname);
-    } else if (i === 1) {
-      infoLine = cDim('\u2500'.repeat(hostname.length + 11));
-    } else if (i - 2 < infoLines.length) {
-      const l = infoLines[i - 2];
-      const pad = ' '.repeat(Math.max(0, labelWidth - l.label.length));
-      const artCols = maxArtWidth + 3;
-      const maxValWidth = Math.max(20, (process.stdout.columns || 80) - artCols - labelWidth - 10);
-      const val = l.value.length > maxValWidth ? l.value.slice(0, maxValWidth - 2) + '..' : l.value;
-      infoLine = `${c(l.label)}${cDim('\u2500'.repeat(3))}${pad}${cDim('\u00b7')}  ${c(val)}`;
-    }
-
-    console.log(`  ${artLine}   ${infoLine}`);
+  for (const line of trimmed) {
+    console.log(' '.repeat(artPadding) + c(line));
   }
 
   console.log();
-  console.log(`  ${' '.repeat(maxArtWidth)}   ${c.italic(tsun)}`);
+  const info = `${getOsName()} ${os.release()}  \u00b7  ${cpuModel} (${cpuCores})  \u00b7  ${fmtMem(usedMem)} / ${fmtMem(totalMem)}  \u00b7  up ${formatUptime(uptime)}`;
+  const infoPadding = Math.max(0, Math.floor((termWidth - info.length) / 2));
+  if (infoPadding >= 0) {
+    console.log(' '.repeat(infoPadding) + cDim(info));
+  } else {
+    console.log(cDim(info));
+  }
+
+  console.log();
+  const tsunPadding = Math.max(0, Math.floor((termWidth - tsun.length) / 2));
+  console.log(' '.repeat(tsunPadding) + c.italic(tsun));
   console.log();
 }
 

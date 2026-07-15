@@ -284,7 +284,7 @@ function interactive() {
   });
 
   console.clear();
-  console.log(retro(BANNER));
+  console.log(BANNER);
   console.log(retroDim(`
   ─────────────────────────────────────────────
   `) + retro('"code. create. conquer."') + retroDim(`
