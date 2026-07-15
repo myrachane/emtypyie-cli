@@ -307,10 +307,10 @@ function runProject(name, proj) {
 function doUpdate() {
   console.log(t.retro('  Updating emtypyie...'));
   try {
-    execSync('npm update -g emtypyie', { stdio: 'inherit' });
+    execSync('npm update -g emtypyie-cli', { stdio: 'inherit' });
     console.log(t.retro('  Update complete!'));
   } catch {
-    console.log(t.retroErr('  Update failed. Try: npm update -g emtypyie'));
+    console.log(t.retroErr('  Update failed. Try: npm update -g emtypyie-cli'));
   }
 }
 
