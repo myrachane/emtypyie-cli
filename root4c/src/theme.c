@@ -1,6 +1,15 @@
 #include "theme.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+#define ANSI_BUF_POOL 12
+static char ansi_bufs[ANSI_BUF_POOL][4096];
+static int ansi_idx = 0;
 
 static const Theme THEMES[] = {
     {"slate",  "#e2e8f0", "#64748b", "#38bdf8", "#fbbf24", "#f87171"},
@@ -14,6 +23,16 @@ static int current_idx = 0;
 
 Theme g_theme;
 
+static void enable_ansi_on_windows(void) {
+#ifdef _WIN32
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD mode;
+    if (GetConsoleMode(hOut, &mode)) {
+        SetConsoleMode(hOut, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+    }
+#endif
+}
+
 static void apply_theme(int idx) {
     if (idx < 0 || idx >= THEME_COUNT) idx = 0;
     current_idx = idx;
@@ -21,6 +40,7 @@ static void apply_theme(int idx) {
 }
 
 void theme_init(const char *name) {
+    enable_ansi_on_windows();
     for (int i = 0; i < THEME_COUNT; i++) {
         if (strcmp(THEMES[i].name, name) == 0) {
             apply_theme(i);
@@ -45,10 +65,11 @@ const char* theme_current(void) {
 }
 
 static const char* ansi(const char *hex, const char *text) {
-    static char buf[4096];
+    char *buf = ansi_bufs[ansi_idx];
+    ansi_idx = (ansi_idx + 1) % ANSI_BUF_POOL;
     int r, g, b;
     sscanf(hex, "#%02x%02x%02x", &r, &g, &b);
-    snprintf(buf, sizeof(buf), "\033[38;2;%d;%d;%dm%s\033[0m", r, g, b, text);
+    snprintf(buf, 4096, "\033[38;2;%d;%d;%dm%s\033[0m", r, g, b, text);
     return buf;
 }
 
