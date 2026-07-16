@@ -2,6 +2,8 @@ node_modules/
 .npmrc
 *.log
 npm_token.txt
+choco_api_key.txt
 dist/
 dev/
 mainsite/
+choco/*.nupkg
