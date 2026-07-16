@@ -46,9 +46,9 @@ emtypyie
 | `/wrap all --commit -m "msg"` | Stage, commit, and push for all subdirs |
 | `/wrap npm publish` | Auto-increment patch version and publish to npm |
 | `/wrap repo "name"` | Create GitHub repo or create PR + merge |
-| `/about` | About emtypyie |
+| `/about` | Show version, release date, license |
 | `/wiki` | Open wiki.emtypyie.in |
-| `/list` | List projects |
+| `/list` | List available projects (fetched from cdn.emtypyie.in) |
 | `/docs <project>` | Open project docs |
 | `/changelog` | What's new |
 | `/clear` | Clear screen |
@@ -135,19 +135,15 @@ Saved to `~/.emtypyie/.env` via `/setenv`:
 
 ## Projects
 
+Projects are fetched dynamically from the project registry at `cdn.emtypyie.in/dev`. Each project has a `metadata.json` file at `cdn.emtypyie.in/dev/<name>/metadata.json` containing its name, description, version, and download URL. The project index is at `cdn.emtypyie.in/dev/meta.json`.
+
 Projects are downloaded to `~/.emtypyie/dev/<name>/`.
 
-- **QR KRAFT** — `/get qrkraft`
+Available projects are listed via `/list` or `/help`.
 
-## GUI
+## /about
 
-Start the web interface:
-
-```bash
-emtypyie gui
-# or
-node gui/server.js
-```
+Displays the EMTYPYIE CLI ASCII banner, version, release date, copyright, and a unique license identifier.
 
 ## Build standalone binary
 
@@ -162,7 +158,3 @@ Produces `dist/emtypyie.exe` — a portable Windows executable with embedded Nod
 - GitHub: [myrachane/emtypyie-cli](https://github.com/myrachane/emtypyie-cli)
 - Website: [emtypyie.in/cli](https://emtypyie.in/cli)
 - Winget: `winget install myrachane.emtypyie-cli`
-
-## License
-
-MIT

@@ -1,6 +1,6 @@
 {
   "name": "emtypyie-cli",
-  "version": "2.0.6",
+  "version": "2.1.0",
   "description": "EMTYPYIE CLI — Run emtypyie projects from your terminal with ease",
   "main": "cli.js",
   "bin": {
@@ -8,15 +8,12 @@
   },
   "scripts": {
     "start": "node cli.js",
-    "gui": "node gui/server.js",
     "build": "pkg cli.js --targets node18-win-x64 --output dist/emtypyie.exe",
     "prepublishOnly": "node -e \"console.log('Publishing emtypyie-cli v' + require('./package.json').version)\""
   },
   "pkg": {
     "assets": [
       "commands/**/*",
-      "projects/**/*",
-      "gui/**/*",
       "node_modules/chalk/**/*"
     ]
   },
@@ -33,7 +30,7 @@
     "project-manager",
     "terminal"
   ],
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
     "chalk": "^4.1.2"
   },

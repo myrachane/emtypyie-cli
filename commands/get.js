@@ -4,11 +4,11 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 
 const t = require('./theme');
 
-function download(url, dest) {
+function downloadHttps(url, dest) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(dest);
     const protocol = url.startsWith('https') ? https : http;
@@ -17,7 +17,7 @@ function download(url, dest) {
       if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
         file.close();
         fs.unlinkSync(dest);
-        return download(response.headers.location, dest).then(resolve).catch(reject);
+        return downloadHttps(response.headers.location, dest).then(resolve).catch(reject);
       }
 
       if (response.statusCode !== 200) {
@@ -47,10 +47,45 @@ function download(url, dest) {
       });
     }).on('error', (err) => {
       file.close();
-      fs.unlinkSync(dest);
+      if (fs.existsSync(dest)) fs.unlinkSync(dest);
       reject(err);
     });
   });
+}
+
+function downloadCurl(url, dest) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn('curl', ['-L', '--progress-bar', '-o', dest, url], { stdio: 'inherit', timeout: 300000 });
+    proc.on('close', (code) => {
+      if (code === 0) {
+        resolve(dest);
+      } else {
+        if (fs.existsSync(dest)) fs.unlinkSync(dest);
+        reject(new Error(`curl exited with code ${code}`));
+      }
+    });
+    proc.on('error', (err) => {
+      if (fs.existsSync(dest)) fs.unlinkSync(dest);
+      reject(err);
+    });
+  });
+}
+
+function isCurlAvailable() {
+  try {
+    execSync('curl --version', { stdio: 'ignore', timeout: 3000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function download(url, dest) {
+  console.log(`  ${t.retroDim('▼')} ${t.retro('Downloading...')}`);
+  if (isCurlAvailable()) {
+    return downloadCurl(url, dest);
+  }
+  return downloadHttps(url, dest);
 }
 
 async function install(name, project) {

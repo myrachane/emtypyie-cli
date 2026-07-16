@@ -9,6 +9,7 @@ const getCommand = require('./commands/get');
 const auth = require('./commands/auth');
 const publish = require('./commands/publish');
 const bakafetch = require('./commands/bakafetch');
+const fetch = require('./commands/fetch');
 
 const t = require('./commands/theme');
 
@@ -20,10 +21,6 @@ ___________        __                         .__                  .__  .__
 /_______  /__|_|  /__|  / ____| |   __// ____||__|\\___  > /\\ \\___  >____/__|
         \\/      \\/      \\/      |__|   \\/             \\/  \\/     \\/ 
 `;
-
-const projects = {
-  qrkraft: require('./projects/qrkraft')
-};
 
 function openBrowser(url) {
   try {
@@ -44,7 +41,7 @@ async function handleCommand(cmd, arg, rl) {
 
   switch (normalized) {
     case 'help':
-      showHelp();
+      await showHelp();
       break;
 
     case 'about':
@@ -61,7 +58,7 @@ async function handleCommand(cmd, arg, rl) {
       break;
 
     case 'info':
-      showProjectInfo(arg);
+      await showProjectInfo(arg);
       break;
 
     case 'get':
@@ -73,7 +70,7 @@ async function handleCommand(cmd, arg, rl) {
       break;
 
     case 'rm':
-      doRemove(arg);
+      await doRemove(arg);
       break;
 
     case 'issue':
@@ -106,11 +103,11 @@ async function handleCommand(cmd, arg, rl) {
       break;
 
     case 'list':
-      doList();
+      await doList();
       break;
 
     case 'docs':
-      doDocs(arg);
+      await doDocs(arg);
       break;
 
     case 'changelog':
@@ -125,16 +122,11 @@ async function handleCommand(cmd, arg, rl) {
       break;
 
     default:
-      const proj = projects[normalized];
-      if (proj) {
-        runProject(normalized, proj);
-      } else {
-        console.log(t.retroErr(`  Unknown command "/${normalized}". Type /help for available commands.`));
-      }
+      await runProject(normalized);
   }
 }
 
-function showHelp() {
+async function showHelp() {
   console.log();
   console.log(t.retroDim('  ─── Commands ───'));
   console.log();
@@ -166,38 +158,61 @@ function showHelp() {
   console.log();
   console.log(t.retroDim('  ─── Projects ───'));
   console.log();
-  for (const [name, proj] of Object.entries(projects)) {
-    const pad = ' '.repeat(Math.max(0, 12 - name.length));
-    console.log(`  ${t.retroAccent(name)}${pad}${t.retroDim(proj.description || '')}`);
+  try {
+    const list = await fetch.fetchProjectList();
+    const projList = Array.isArray(list) ? list : (list.projects || []);
+    for (const entry of projList) {
+      const name = typeof entry === 'string' ? entry : entry.name;
+      const desc = entry.description || '';
+      const pad = ' '.repeat(Math.max(0, 12 - name.length));
+      console.log(`  ${t.retroAccent(name)}${pad}${t.retroDim(desc)}`);
+    }
+  } catch {
+    console.log(t.retroDim('  (Could not fetch project list)'));
   }
   console.log();
+}
+
+function getReleaseDate() {
+  try {
+    return execSync('git log -1 --format=%ad --date=short', { encoding: 'utf8', timeout: 5000 }).toString().trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
+function generateLicense() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 16; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 }
 
 function showAbout() {
   console.log();
-  console.log(t.retroDim('  ─────────────────────────────'));
-  console.log(t.retro('  emtypyie CLI'));
-  console.log(t.retroDim('  ─────────────────────────────'));
-  console.log();
   const pkg = require('./package.json');
-  console.log(t.retroDim('  Version: ') + t.retro(pkg.version));
-  console.log(t.retroDim('  Website: ') + t.retroAccent('https://emtypyie.in'));
-  console.log(t.retroDim('  GitHub:  ') + t.retroAccent('https://github.com/myrachane'));
-  console.log(t.retroDim('  Wiki:    ') + t.retroAccent('https://wiki.emtypyie.in'));
-  console.log(t.retroDim('  Author:  ') + t.retro('myrachane'));
+  console.log(t.retro(BANNER));
+  console.log(t.retro(`  EMTYPYIE CLI v${pkg.version}`));
+  console.log(t.retroDim(`  Released ${getReleaseDate()}`));
   console.log();
-  console.log(t.retro('  "code. create. conquer."'));
+  console.log(t.retroDim('  DESIGNED AND ENGINEERED BY  EMTYPYIE'));
+  console.log(t.retroDim(`  Copyright \u00a9 ${new Date().getFullYear()} EMTYPYIE. All rights reserved.`));
+  console.log(t.retroDim(`  License ${generateLicense()}`));
   console.log();
 }
 
-function showProjectInfo(name) {
+async function showProjectInfo(name) {
   if (!name) {
     console.log(t.retroErr('  Specify a project: /info <project>'));
     return;
   }
-  const proj = projects[name.toLowerCase()];
-  if (!proj) {
-    console.log(t.retroErr(`  Unknown project "${name}".`));
+  let proj;
+  try {
+    proj = await fetch.fetchProject(name.toLowerCase());
+  } catch (err) {
+    console.log(t.retroErr(err.message));
     return;
   }
   console.log();
@@ -218,9 +233,11 @@ async function doGet(name) {
     console.log(t.retroErr('  Specify a project: /get <project>'));
     return;
   }
-  const proj = projects[name.toLowerCase()];
-  if (!proj) {
-    console.log(t.retroErr(`  Unknown project "${name}".`));
+  let proj;
+  try {
+    proj = await fetch.fetchProject(name.toLowerCase());
+  } catch (err) {
+    console.log(t.retroErr(err.message));
     return;
   }
   await getCommand.install(name.toLowerCase(), proj);
@@ -231,9 +248,11 @@ async function doFlash(name) {
     console.log(t.retroErr('  Specify a project: /flash <project>'));
     return;
   }
-  const proj = projects[name.toLowerCase()];
-  if (!proj) {
-    console.log(t.retroErr(`  Unknown project "${name}".`));
+  let proj;
+  try {
+    proj = await fetch.fetchProject(name.toLowerCase());
+  } catch (err) {
+    console.log(t.retroErr(err.message));
     return;
   }
   console.log();
@@ -247,14 +266,15 @@ async function doFlash(name) {
   await getCommand.install(name.toLowerCase(), proj);
 }
 
-function doRemove(name) {
+async function doRemove(name) {
   if (!name) {
     console.log(t.retroErr('  Specify a project: /rm <project>'));
     return;
   }
-  const proj = projects[name.toLowerCase()];
-  if (!proj) {
-    console.log(t.retroErr(`  Unknown project "${name}".`));
+  try {
+    await fetch.fetchProject(name.toLowerCase());
+  } catch (err) {
+    console.log(t.retroErr(err.message));
     return;
   }
   const dir = t.getDevDir(name.toLowerCase());
@@ -282,9 +302,11 @@ async function doIssue(arg) {
     return;
   }
 
-  const proj = projects[name];
-  if (!proj) {
-    console.log(t.retroErr(`  Unknown project "${name}".`));
+  let proj;
+  try {
+    proj = await fetch.fetchProject(name);
+  } catch (err) {
+    console.log(t.retroErr(err.message));
     return;
   }
 
@@ -308,7 +330,14 @@ function launch(path) {
   spawn(path, [], { detached: true, stdio: 'ignore' }).unref();
 }
 
-function runProject(name, proj) {
+async function runProject(name) {
+  let proj;
+  try {
+    proj = await fetch.fetchProject(name);
+  } catch (err) {
+    console.log(t.retroErr(err.message));
+    return;
+  }
   if (proj.run) {
     const runPath = path.resolve(t.getDevDir(name), proj.run);
     if (!fs.existsSync(runPath)) {
@@ -344,25 +373,36 @@ function doUpdate() {
   }
 }
 
-function doList() {
+async function doList() {
   console.log();
   console.log(t.retroDim('  ─── Projects ───'));
   console.log();
-  for (const [name, proj] of Object.entries(projects)) {
-    const pad = ' '.repeat(Math.max(0, 12 - name.length));
-    console.log(`  ${t.retroAccent(name)}${pad}${t.retroDim(proj.version || '?')}  ${t.retro(proj.description || '')}`);
+  try {
+    const list = await fetch.fetchProjectList();
+    const projList = Array.isArray(list) ? list : (list.projects || []);
+    for (const entry of projList) {
+      const name = typeof entry === 'string' ? entry : entry.name;
+      const ver = entry.version || '?';
+      const desc = entry.description || '';
+      const pad = ' '.repeat(Math.max(0, 12 - name.length));
+      console.log(`  ${t.retroAccent(name)}${pad}${t.retroDim(ver)}  ${t.retro(desc)}`);
+    }
+  } catch {
+    console.log(t.retroDim('  (Could not fetch project list)'));
   }
   console.log();
 }
 
-function doDocs(arg) {
+async function doDocs(arg) {
   if (!arg) {
     console.log(t.retroErr('  Specify a project: /docs <project>'));
     return;
   }
-  const proj = projects[arg.toLowerCase()];
-  if (!proj) {
-    console.log(t.retroErr(`  Unknown project "${arg}".`));
+  let proj;
+  try {
+    proj = await fetch.fetchProject(arg.toLowerCase());
+  } catch (err) {
+    console.log(t.retroErr(err.message));
     return;
   }
   const repo = proj.repo || `myrachane/${arg}`;
@@ -471,7 +511,7 @@ async function direct(args) {
   const arg = args.slice(1).join(' ');
 
   if (!cmd || cmd === 'help' || cmd === '/help') {
-    showHelp();
+    await showHelp();
     return;
   }
 
