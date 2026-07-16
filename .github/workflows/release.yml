@@ -38,11 +38,12 @@ jobs:
         run: npm run build
 
       - name: Package ZIP
-        shell: bash
+        shell: pwsh
         run: |
-          cd dist
-          zip emtypyie-cli-windows-x64-${{ steps.version.outputs.VERSION }}.zip emtypyie.exe
-          sha256sum emtypyie-cli-windows-x64-${{ steps.version.outputs.VERSION }}.zip > emtypyie-cli-windows-x64-${{ steps.version.outputs.VERSION }}.zip.sha256
+          $version = "${{ steps.version.outputs.VERSION }}"
+          Compress-Archive -Path dist\emtypyie.exe -DestinationPath dist\emtypyie-cli-windows-x64-$version.zip -Force
+          $hash = (Get-FileHash dist\emtypyie-cli-windows-x64-$version.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  dist\emtypyie-cli-windows-x64-$version.zip" | Out-File -FilePath dist\emtypyie-cli-windows-x64-$version.zip.sha256 -Encoding ascii
 
       - uses: softprops/action-gh-release@v2
         with:
