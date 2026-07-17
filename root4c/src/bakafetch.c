@@ -164,10 +164,6 @@ static const char* get_build(void) {
 }
 
 void bakafetch_show(void) {
-#ifdef _WIN32
-    SetConsoleOutputCP(CP_UTF8);
-#endif
-
     srand((unsigned)time(NULL));
     int art_idx = rand() % ART_COUNT;
     int tsun_idx = rand() % TSUN_COUNT;

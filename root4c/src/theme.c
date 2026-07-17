@@ -25,6 +25,7 @@ Theme g_theme;
 
 static void enable_ansi_on_windows(void) {
 #ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD mode;
     if (GetConsoleMode(hOut, &mode)) {
