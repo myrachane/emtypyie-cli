@@ -313,6 +313,46 @@ nav {
 .install-gh-link a::before { content: '> '; color: var(--muted); }
 .install-gh-link a:hover { border-color: var(--accent); color: var(--accent); background: var(--bg2); }
 
+.download-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--bg);
+  background: var(--accent);
+  text-decoration: none;
+  padding: 0.9rem 1.6rem;
+  border: 2px solid var(--accent);
+  box-shadow: 4px 4px 0 var(--accent-deep);
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background 0.15s, color 0.15s, border-color 0.15s;
+}
+.download-btn:hover {
+  transform: translate(-2px,-2px);
+  box-shadow: 6px 6px 0 var(--accent-deep);
+  background: var(--accent2);
+  color: var(--bg);
+  border-color: var(--accent2);
+}
+.download-btn:active {
+  transform: translate(2px,2px);
+  box-shadow: 2px 2px 0 var(--accent-deep);
+}
+.download-btn .size {
+  font-size: 0.65rem;
+  font-weight: 400;
+  opacity: 0.75;
+  letter-spacing: 0.06em;
+}
+
 /* ── COMMANDS ── */
 .commands-grid {
   display: grid;
@@ -689,9 +729,9 @@ footer { border-top: 1px solid var(--rule); background: var(--bg2); transition: 
       <button class="install-copy" id="install-copy-btn" type="button">Copy</button>
     </div>
     <p class="install-deps-note">The winget &amp; choco packages ship the self-contained C native build. npm installs the Node.js version (requires Node 18+). After installation, run <code style="font-family:var(--mono);font-size:0.72rem;background:var(--bg2);border:1px solid var(--rule);color:var(--accent);padding:0.08rem 0.3rem;">emtypyie</code> in your terminal to start.</p>
-    <div style="margin-top:1.2rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-      <a class="install-gh-link" href="https://github.com/myrachane/emtypyie-cli/releases/download/v2.5.0/emtypyie-cli-native-windows-x64-2.5.0.zip" style="display:inline-flex;align-items:center;gap:0.4rem;font-family:var(--mono);font-size:0.68rem;letter-spacing:0.06em;color:var(--ink2);text-decoration:none;padding:0.5rem 0.9rem;border:1px solid var(--rule);transition:border-color 0.15s,color 0.15s,background 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';this.style.background='var(--bg2)'" onmouseout="this.style.borderColor='';this.style.color='';this.style.background=''">&#9660; Download C native EXE (60 KB)</a>
-      <a class="install-gh-link" href="https://github.com/myrachane/emtypyie-cli/releases/download/v2.5.0/emtypyie-cli-windows-x64-2.5.0.zip" style="display:inline-flex;align-items:center;gap:0.4rem;font-family:var(--mono);font-size:0.68rem;letter-spacing:0.06em;color:var(--ink2);text-decoration:none;padding:0.5rem 0.9rem;border:1px solid var(--rule);transition:border-color 0.15s,color 0.15s,background 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';this.style.background='var(--bg2)'" onmouseout="this.style.borderColor='';this.style.color='';this.style.background=''">&#9660; Download Node.js EXE (14 MB)</a>
+    <div class="download-row">
+      <a class="download-btn" href="https://github.com/myrachane/emtypyie-cli/releases/download/v2.5.0/emtypyie-cli-native-windows-x64-2.5.0.zip">&#9660; C Native EXE <span class="size">60 KB</span></a>
+      <a class="download-btn" href="https://github.com/myrachane/emtypyie-cli/releases/download/v2.5.0/emtypyie-cli-windows-x64-2.5.0.zip">&#9660; Node.js EXE <span class="size">14 MB</span></a>
     </div>
     <p class="install-gh-link" style="margin-top:0.8rem;"><a href="https://github.com/myrachane/emtypyie-cli" target="_blank" rel="noopener">Report issues on GitHub</a></p>
   </div>
