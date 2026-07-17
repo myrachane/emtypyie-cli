@@ -70,24 +70,42 @@ static char* get_exe_dir(void) {
 static char* read_animation_file(void) {
     char *exe_dir = get_exe_dir();
     char path[1024];
-    snprintf(path, sizeof(path), "%s%c..%c..%cv2.5.3%cstartup_animation.json", exe_dir, PATH_SEP, PATH_SEP, PATH_SEP, PATH_SEP);
     
+    // Try 1: Same directory as executable (for distributed builds)
+    snprintf(path, sizeof(path), "%s%cstartup_animation.json", exe_dir, PATH_SEP);
     FILE *f = fopen(path, "rb");
-    if (!f) {
-        return NULL;
-    }
-    fseek(f, 0, SEEK_END);
-    long size = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    char *buf = malloc(size + 1);
-    if (!buf) {
+    if (f) {
+        fseek(f, 0, SEEK_END);
+        long size = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        char *buf = malloc(size + 1);
+        if (buf) {
+            fread(buf, 1, size, f);
+            buf[size] = '\0';
+            fclose(f);
+            return buf;
+        }
         fclose(f);
-        return NULL;
     }
-    fread(buf, 1, size, f);
-    buf[size] = '\0';
-    fclose(f);
-    return buf;
+    
+    // Try 2: archive/v2.5.3 relative to project root (for dev builds)
+    snprintf(path, sizeof(path), "%s%c..%c..%carchive%cv2.5.3%cstartup_animation.json", exe_dir, PATH_SEP, PATH_SEP, PATH_SEP, PATH_SEP, PATH_SEP);
+    f = fopen(path, "rb");
+    if (f) {
+        fseek(f, 0, SEEK_END);
+        long size = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        char *buf = malloc(size + 1);
+        if (buf) {
+            fread(buf, 1, size, f);
+            buf[size] = '\0';
+            fclose(f);
+            return buf;
+        }
+        fclose(f);
+    }
+    
+    return NULL;
 }
 
 static void print_line_padded(const char *line, int target_width) {

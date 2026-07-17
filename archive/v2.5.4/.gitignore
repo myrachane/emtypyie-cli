@@ -1,0 +1,4 @@
+# Build artifacts (object files, cmake cache)
+*.o
+Root4c/build/
+Root4node/node_modules/
