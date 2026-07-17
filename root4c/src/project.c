@@ -386,7 +386,7 @@ bool project_run(const char *name) {
         snprintf(spawn_cmd, sizeof(spawn_cmd), "\"%s\"", run_path);
     }
 
-    printf("\n");
+printf("\n");
     int rc = system(spawn_cmd);
     printf("\n");
     if (rc != 0) {
