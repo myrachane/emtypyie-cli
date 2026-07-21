@@ -137,6 +137,11 @@
   .out.sys { color: var(--muted); }
   .out.art { line-height: 1; }
   .welcome { color: var(--muted-dim); padding-left: 20px; font-size: 16px; }
+  .statusBar { height: 24px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; font-size: 12px; color: var(--muted-dim); flex-shrink: 0; border-top: 1px solid var(--border); transition: color .15s; }
+  .statusBar.busy { color: var(--text); }
+  .statusDot { width: 7px; height: 7px; border-radius: 50%; background: transparent; transition: background .2s; }
+  .statusBar.busy .statusDot { background: var(--accent); animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
 
   /* ---------- input row ---------- */
   .inputWrap { position: relative; flex-shrink: 0; padding: 10px 22px 18px; }
@@ -531,6 +536,7 @@
     stage.innerHTML = `
       <div class="splitTag"></div>
       <div class="consoleEl"><div class="welcome">New session. Type <b style="color:var(--accent)">/</b> to see available commands.</div></div>
+      <div class="statusBar"><span class="statusText"></span><span class="statusDot"></span></div>
       <div class="inputWrap">
         <div class="suggest"></div>
         <div class="inputRow">
@@ -547,6 +553,8 @@
       inputRow: stage.querySelector('.inputRow'),
       suggestEl: stage.querySelector('.suggest'),
       splitTag: stage.querySelector('.splitTag'),
+      statusBar: stage.querySelector('.statusBar'),
+      statusText: stage.querySelector('.statusText'),
       cmdHistory: [], historyIndex: 0,
       suggestions: [], activeIndex: 0, paletteOpen: false,
       draft: ''
@@ -730,9 +738,10 @@
       session.consoleEl.scrollTop = session.consoleEl.scrollHeight;
       return;
     }
-    // Mark that the last entry is waiting for engine output.
     const lastEntry = session.consoleEl.lastChild;
     if (lastEntry) lastEntry.dataset.waiting = '1';
+    if (session.statusText) session.statusText.textContent = '/' + cmd + (arg ? ' ' + arg : '');
+    session.statusBar?.classList.add('busy');
     window.emt.send(session.id, cmd, arg || '');
   }
 
@@ -745,6 +754,9 @@
       if (lastEntry) delete lastEntry.dataset.waiting;
       const after = txt.slice(mi + marker.length);
       if (after.trim()) appendOutput(session, after);
+      session.statusBar?.classList.remove('busy');
+      if (session._statusTimer) clearTimeout(session._statusTimer);
+      session._statusTimer = setTimeout(() => { if (session.statusText) session.statusText.textContent = ''; }, 4000);
     } else {
       appendOutput(session, txt);
     }
@@ -762,6 +774,8 @@
     }
     out.textContent += (stripped || '') + '\n';
     session.consoleEl.scrollTop = session.consoleEl.scrollHeight;
+    if (session.statusText) session.statusText.textContent = stripped || '';
+    session.statusBar?.classList.add('busy');
   }
 
   function executeLine(session, raw){
@@ -855,8 +869,7 @@
     const s = getSession();
     if (s) pushEntry(s, '', line('This GUI must be launched through Electron (run "npm start" in the Root4gui folder). Opening index.html directly has no engine bridge, so commands cannot run.', 'err'));
   } else {
-    // Show the EMTYPYIE.CLI + Baking Bread banner on open.
-    (function showBanner(){
+    (async function showBanner(){
       const s = tabs[0];
       if (!s) return;
       const welcome = s.consoleEl.querySelector('.welcome');
@@ -864,7 +877,13 @@
       const art = document.createElement('div');
       art.className = 'out ok art';
       art.style.whiteSpace = 'pre-wrap';
-      art.textContent = STARTUP_BANNER;
+      try {
+        const resp = await fetch('logo.ino');
+        if (resp.ok) art.textContent = await resp.text();
+        else art.textContent = STARTUP_BANNER;
+      } catch (_) {
+        art.textContent = STARTUP_BANNER;
+      }
       s.consoleEl.appendChild(art);
       s.consoleEl.scrollTop = s.consoleEl.scrollHeight;
     })();
