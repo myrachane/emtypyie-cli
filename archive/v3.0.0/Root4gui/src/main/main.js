@@ -3,6 +3,7 @@
 const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const https = require('https');
 const { Engine, enginePath, readEnvJson, writeEnvJson, envJsonPath, envDir } = require('../engine/engine');
 
@@ -38,6 +39,28 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
+
+  // ─── Desktop shortcut (first launch only) ───
+  if (process.platform === 'win32') {
+    const flagFile = path.join(envDir(), '.shortcut_created');
+    if (!fs.existsSync(flagFile)) {
+      try {
+        if (!fs.existsSync(envDir())) fs.mkdirSync(envDir(), { recursive: true });
+        const desktop = path.join(os.homedir(), 'Desktop');
+        const shortcut = path.join(desktop, 'Emtypyie CLI.lnk');
+        const target = process.execPath;
+        const icon = path.join(__dirname, '..', 'renderer', 'logo.ico');
+        if (!fs.existsSync(shortcut)) {
+          const { exec } = require('child_process');
+          exec(
+            `powershell -NoProfile -Command "$ws=New-Object -ComObject WScript.Shell;$s=$ws.CreateShortcut('${shortcut.replace(/'/g,"''")}');$s.TargetPath='${target.replace(/'/g,"''")}';$s.IconLocation='${icon.replace(/'/g,"''")}';$s.Save()"`,
+            () => {}
+          );
+        }
+        fs.writeFileSync(flagFile, '1');
+      } catch (_) {}
+    }
+  }
 
   // ─── Custom title bar controls ───
   ipcMain.on('win:min', () => mainWindow?.minimize());
