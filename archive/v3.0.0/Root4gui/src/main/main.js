@@ -4,7 +4,7 @@ const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
-const { Engine, readEnvJson, writeEnvJson, envJsonPath, envDir } = require('../engine/engine');
+const { Engine, enginePath, readEnvJson, writeEnvJson, envJsonPath, envDir } = require('../engine/engine');
 
 // Handle Squirrel install/uninstall events on Windows (no-op if not present).
 try {
@@ -86,7 +86,7 @@ app.whenReady().then(() => {
   });
 
   // ─── Update flow: Node-side GitHub check + native zip apply ───
-  const GUI_VERSION = '3.0.0';
+  const WRAPPER_VERSION = '1.0.1';
   const REPO = 'myrachane/Emtypyie.cli';
 
   function httpsJson(url) {
@@ -118,17 +118,18 @@ app.whenReady().then(() => {
   ipcMain.handle('update:check', async () => {
     try {
       const rel = await httpsJson(`https://api.github.com/repos/${REPO}/releases/latest`);
-      const tag = rel.tag_name || '';
-      const isNewer = compareVersions(tag, GUI_VERSION) > 0;
+      const engineVer = (rel.tag_name || '').replace(/^v/, '');
+      const isNewer = compareVersions(engineVer, WRAPPER_VERSION) > 0;
       const asset = (rel.assets || []).find(a => /emtypyie-cli-native-windows-x64/i.test(a.name || ''));
       return {
         updateAvailable: isNewer,
-        name: isNewer ? tag : GUI_VERSION,
+        engineVersion: engineVer,
+        wrapperVersion: WRAPPER_VERSION,
         notes: rel.body || '',
         url: asset ? asset.browser_download_url : null
       };
     } catch (e) {
-      return { updateAvailable: false, name: GUI_VERSION, notes: '', url: null, error: e.message };
+      return { updateAvailable: false, engineVersion: '', wrapperVersion: WRAPPER_VERSION, notes: '', url: null, error: e.message };
     }
   });
 
@@ -162,6 +163,62 @@ app.whenReady().then(() => {
               fs.unlinkSync(tmp);
               if (mainWindow) mainWindow.webContents.send('update:progress', 100);
               mainWindow && mainWindow.webContents.send('update:done');
+              resolve({ ok: wrote });
+            } catch (err) {
+              resolve({ ok: false, msg: err.message });
+            }
+          });
+        });
+      });
+      req.on('error', (e) => resolve({ ok: false, msg: e.message }));
+    });
+  });
+
+  // ─── Runtime (C engine binary) check + download ───
+  const RUNTIME_ASSET_PATTERN = /emtypyie-cli-native-windows-x64/i;
+
+  ipcMain.handle('runtime:check', async () => {
+    const exePath = enginePath();
+    const exists = fs.existsSync(exePath);
+    let url = null;
+    try {
+      const rel = await httpsJson(`https://api.github.com/repos/${REPO}/releases/latest`);
+      const asset = (rel.assets || []).find(a => RUNTIME_ASSET_PATTERN.test(a.name || ''));
+      if (asset) url = asset.browser_download_url;
+    } catch (_) {}
+    return { exists, url };
+  });
+
+  ipcMain.handle('runtime:install', async (_e, { url }) => {
+    return new Promise((resolve) => {
+      if (!url) { resolve({ ok: false, msg: 'no asset url' }); return; }
+      const tmp = path.join(envDir(), 'runtime.zip');
+      let received = 0;
+      const req = https.get(url, { headers: { 'User-Agent': 'Emtypyie-GUI' } }, (res) => {
+        const total = parseInt(res.headers['content-length'] || '0', 10);
+        const file = fs.createWriteStream(tmp);
+        res.on('data', (chunk) => {
+          received += chunk.length;
+          if (total) mainWindow && mainWindow.webContents.send('runtime:progress', (received / total) * 100);
+        });
+        res.on('end', () => {
+          file.end(() => {
+            try {
+              const AdmZip = require('adm-zip');
+              const zip = new AdmZip(tmp);
+              const entries = zip.getEntries();
+              const target = enginePath();
+              let wrote = false;
+              for (const e of entries) {
+                if (/emtypyie\.exe$/i.test(e.entryName)) {
+                  zip.extractEntryTo(e, path.dirname(target), false, true);
+                  wrote = true;
+                  break;
+                }
+              }
+              fs.unlinkSync(tmp);
+              if (mainWindow) mainWindow.webContents.send('runtime:progress', 100);
+              mainWindow && mainWindow.webContents.send('runtime:done');
               resolve({ ok: wrote });
             } catch (err) {
               resolve({ ok: false, msg: err.message });

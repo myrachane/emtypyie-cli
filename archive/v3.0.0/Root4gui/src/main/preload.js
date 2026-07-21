@@ -18,6 +18,12 @@ contextBridge.exposeInMainWorld('emt', {
   getEnv: () => ipcRenderer.invoke('env:get'),
   setEnv: (obj) => ipcRenderer.invoke('env:set', obj),
 
+  // Runtime (C engine binary) check + download
+  checkRuntime: () => ipcRenderer.invoke('runtime:check'),
+  installRuntime: (url) => ipcRenderer.invoke('runtime:install', { url }),
+  onRuntimeProgress: (cb) => ipcRenderer.on('runtime:progress', (_e, pct) => cb(pct)),
+  onRuntimeDone: (cb) => ipcRenderer.on('runtime:done', () => cb()),
+
   // Node-side update flow (GitHub API in the main process)
   checkUpdate: () => ipcRenderer.invoke('update:check'),
   applyUpdate: (url) => ipcRenderer.invoke('update:apply', { url }),

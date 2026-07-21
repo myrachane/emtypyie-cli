@@ -128,7 +128,7 @@
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    opacity: 0.2;
+    opacity: var(--bg-opacity, 0.2);
     pointer-events: none;
     z-index: 0;
   }
@@ -235,20 +235,25 @@
   .bigBtn { width: 100%; margin-top: 6px; padding: 10px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); cursor: pointer; font-family: inherit; font-size: 16px; }
   .bigBtn:hover { border-color: var(--accent-dim); color: var(--accent); }
 
-  /* ---------- update popup ---------- */
-  #updatePopup { position: fixed; inset: 0; background: rgba(6,3,10,0.6); backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center; z-index: 60; }
-  #updatePopup.open { display: flex; }
-  #updateCard { width: 460px; max-width: 92vw; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
-  #updateCard h2 { margin: 0; font-size: 20px; color: var(--accent); font-weight: 400; }
-  #updateCard .upHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-  #updateCard .upClose { flex: none; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; }
-  #updateCard .upClose:hover { border-color: var(--err); color: var(--err); }
-  #updateCard .upName { color: var(--muted); font-size: 16px; margin-bottom: 12px; }
-  #updateCard .upNotes { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; font-size: 15px; color: var(--text); margin-bottom: 16px; }
-  #updateCard .upActions { display: flex; gap: 10px; }
-  #updateCard .upActions button { flex: 1; padding: 9px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); cursor: pointer; font-family: inherit; font-size: 16px; }
-  #updateCard .upActions button.primary { border-color: var(--accent-dim); color: var(--accent); }
-  #updateCard .upActions button:hover { border-color: var(--accent); }
+  .slider { -webkit-appearance: none; appearance: none; width: 140px; height: 6px; border-radius: 3px; background: var(--panel-3); outline: none; cursor: pointer; }
+  .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 2px solid var(--panel); cursor: pointer; transition: transform .12s; }
+  .slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .sliderVal { color: var(--muted); font-size: 14px; min-width: 36px; text-align: right; }
+
+  /* ---------- popups (update + runtime) ---------- */
+  .popup { position: fixed; inset: 0; background: rgba(6,3,10,0.6); backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center; z-index: 60; }
+  .popup.open { display: flex; }
+  .popupCard { width: 460px; max-width: 92vw; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+  .popupCard h2 { margin: 0; font-size: 20px; color: var(--accent); font-weight: 400; }
+  .popupCard .upHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .popupCard .upClose { flex: none; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; }
+  .popupCard .upClose:hover { border-color: var(--err); color: var(--err); }
+  .popupCard .upName { color: var(--muted); font-size: 16px; margin-bottom: 12px; }
+  .popupCard .upNotes { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; font-size: 15px; color: var(--text); margin-bottom: 16px; }
+  .popupCard .upActions { display: flex; gap: 10px; }
+  .popupCard .upActions button { flex: 1; padding: 9px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); cursor: pointer; font-family: inherit; font-size: 16px; }
+  .popupCard .upActions button.primary { border-color: var(--accent-dim); color: var(--accent); }
+  .popupCard .upActions button:hover { border-color: var(--accent); }
   .progressWrap { display: none; margin-top: 14px; }
   .progressWrap.show { display: block; }
   .progressBar { height: 10px; background: var(--panel-3); border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
@@ -299,6 +304,7 @@
     <div class="settingsBody">
       <div class="settingsNav" id="settingsNav">
         <button data-section="appearance" class="selected">Appearance</button>
+        <button data-section="ricing">Ricing</button>
         <button data-section="environment">Environment</button>
         <button data-section="about">About</button>
         <button data-section="updates">Updates</button>
@@ -317,6 +323,15 @@
             <div class="segmented" id="fontSize">
               <button data-size="16" class="selected">M</button>
             </div>
+          </div>
+        </div>
+        <!-- Ricing -->
+        <div class="settingsSection" data-section="ricing">
+          <h3>Ricing</h3>
+          <div class="settingRow">
+            <label>BG opacity</label>
+            <input type="range" id="bgOpacity" min="0" max="100" value="20" class="slider" />
+            <span class="sliderVal" id="bgOpacityVal">20%</span>
           </div>
         </div>
         <!-- Environment -->
@@ -370,8 +385,8 @@
   </div>
 </div>
 
-<div id="updatePopup">
-  <div id="updateCard">
+<div id="updatePopup" class="popup">
+  <div id="updateCard" class="popupCard">
     <div class="upHead">
       <h2 id="upHeading">Update available</h2>
       <button class="upClose" id="upClose" title="Close">&#x2715;</button>
@@ -387,6 +402,25 @@
       <div class="progressPct" id="upProgressPct">0%</div>
     </div>
     <div class="restartNote" id="upRestart">Update installed. A restart is required to apply.</div>
+  </div>
+</div>
+
+<div id="runtimePopup" class="popup">
+  <div id="runtimeCard" class="popupCard">
+    <div class="upHead">
+      <h2>Runtime not found</h2>
+      <button class="upClose" id="runtimeClose" title="Close">&#x2715;</button>
+    </div>
+    <p class="muted" style="margin:8px 0 14px">The C engine binary (<span class="badge">emtypyie.exe</span>) is missing. Download it now to use the terminal.</p>
+    <div class="upActions" id="runtimeActions">
+      <button id="runtimeCancel">Cancel</button>
+      <button class="primary" id="runtimeDownloadBtn">Download Runtime</button>
+    </div>
+    <div class="progressWrap" id="runtimeProgressWrap">
+      <div class="progressBar"><div id="runtimeProgressFill"></div></div>
+      <div class="progressPct" id="runtimeProgressPct">0%</div>
+    </div>
+    <div class="restartNote" id="runtimeRestartNote">Runtime installed. <b>Restart</b> the app or create a new session.</div>
   </div>
 </div>
 
@@ -968,6 +1002,24 @@
     });
   });
 
+  // bg opacity slider
+  const bgSlider = document.getElementById('bgOpacity');
+  const bgSliderVal = document.getElementById('bgOpacityVal');
+  const rootStyle = document.documentElement;
+  const savedBg = localStorage.getItem('emtypyie_bg_opacity');
+  if (savedBg !== null) {
+    const v = Math.max(0, Math.min(100, parseInt(savedBg, 10)));
+    bgSlider.value = v;
+    bgSliderVal.textContent = v + '%';
+    rootStyle.style.setProperty('--bg-opacity', (v / 100).toString());
+  }
+  bgSlider.addEventListener('input', () => {
+    const v = parseInt(bgSlider.value, 10);
+    bgSliderVal.textContent = v + '%';
+    rootStyle.style.setProperty('--bg-opacity', (v / 100).toString());
+    localStorage.setItem('emtypyie_bg_opacity', v.toString());
+  });
+
   // settings nav
   const nav = document.getElementById('settingsNav');
   nav.querySelectorAll('button').forEach(btn => {
@@ -1033,6 +1085,7 @@
   function fillAbout(){
     document.getElementById('aboutText').innerHTML =
       `Emtypyie.cli@${VERSION}<br>` +
+      `Wrapper: v1.0.1<br><br>` +
       `Codename: <b style="color:var(--accent)">Baking Bread</b><br><br>` +
       `DESIGNED AND ENGINEERED BY EMTYPYIE<br>` +
       `Copyright 2026 EMTYPYIE. All rights reserved.`;
@@ -1058,9 +1111,9 @@
     const now = new Date().toLocaleString();
     if (res && res.updateAvailable) {
       pendingUpdate = res;
-      updateStatus.textContent = `Last checked: ${now}. Update available: ${res.name}.`;
+      updateStatus.textContent = `Last checked: ${now}. Engine ${res.engineVersion} available.`;
       upHeading.textContent = 'Update available';
-      upName.textContent = res.name;
+      upName.innerHTML = `Engine: <b>${res.engineVersion}</b> &nbsp;|&nbsp; Wrapper: <b>${res.wrapperVersion}</b>`;
       upNotes.textContent = res.notes || '(no release notes)';
       upActions.style.display = 'flex';
       upProgressWrap.classList.remove('show');
@@ -1070,8 +1123,8 @@
       updateStatus.textContent = `Last checked: ${now}. Up to date.`;
       if (showIfNone) {
         upHeading.textContent = 'You are up to date';
-        upName.textContent = 'No updates';
-        upNotes.textContent = 'You are on the latest build (' + VERSION + ').';
+        upName.innerHTML = `Wrapper: <b>${res.wrapperVersion}</b> &nbsp;|&nbsp; Engine: <b>${res.engineVersion || '(latest)'}</b>`;
+        upNotes.textContent = 'You are on the latest build.';
         upActions.style.display = 'none';
         upProgressWrap.classList.remove('show');
         upRestart.classList.remove('show');
@@ -1103,8 +1156,47 @@
     upRestart.classList.add('show');
   });
 
-  // auto-check on open
-  doUpdateCheck(false);
+  // ---------------- Runtime (C binary) check ----------------
+  async function checkRuntime() {
+    const info = await window.emt.checkRuntime();
+    if (!info.exists) {
+      runtimeUrl = info.url;
+      runtimePopup.classList.add('open');
+    }
+  }
+
+  const runtimePopup = document.getElementById('runtimePopup');
+  const runtimeActions = document.getElementById('runtimeActions');
+  const runtimeProgressWrap = document.getElementById('runtimeProgressWrap');
+  const runtimeProgressFill = document.getElementById('runtimeProgressFill');
+  const runtimeProgressPct = document.getElementById('runtimeProgressPct');
+  const runtimeRestartNote = document.getElementById('runtimeRestartNote');
+  let runtimeUrl = null;
+
+  document.getElementById('runtimeDownloadBtn').addEventListener('click', async () => {
+    if (!runtimeUrl) { runtimePopup.classList.remove('open'); return; }
+    runtimeActions.style.display = 'none';
+    runtimeProgressWrap.classList.add('show');
+    runtimeProgressFill.style.width = '0%';
+    runtimeProgressPct.textContent = '0%';
+    await window.emt.installRuntime(runtimeUrl);
+  });
+  document.getElementById('runtimeCancel').addEventListener('click', () => runtimePopup.classList.remove('open'));
+  document.getElementById('runtimeClose').addEventListener('click', () => runtimePopup.classList.remove('open'));
+  runtimePopup.addEventListener('click', (e) => { if (e.target === runtimePopup) runtimePopup.classList.remove('open'); });
+
+  window.emt.onRuntimeProgress((pct) => {
+    const p = Math.max(0, Math.min(100, Math.round(pct)));
+    runtimeProgressFill.style.width = p + '%';
+    runtimeProgressPct.textContent = p + '%';
+  });
+  window.emt.onRuntimeDone(() => {
+    runtimeRestartNote.classList.add('show');
+  });
+
+  // startup: check binary first, then auto-check updates
+  checkRuntime();
+  setTimeout(() => doUpdateCheck(false), 500);
 })();
 </script>
 </body>
