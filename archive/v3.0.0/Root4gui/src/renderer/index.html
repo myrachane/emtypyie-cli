@@ -1,0 +1,1067 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'" />
+<title>Emtypyie.cli@3.2.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* ---- black & white only (default palette) ---- */
+    --bg: #000000;
+    --panel: #0a0a0a;
+    --panel-2: #141414;
+    --panel-3: #1c1c1c;
+    --border: #333333;
+    --accent: #ffffff;
+    --accent-dim: #cccccc;
+    --accent-2: #ffffff;
+    --text: #f2f2f2;
+    --muted: #999999;
+    --muted-dim: #5c5c5c;
+    --ok: #ffffff;
+    --err: #ffffff;
+    --pixel-font: 'VT323', 'Cascadia Code', 'Fira Code', 'Consolas', ui-monospace, monospace;
+    --pixel-font-display: 'Press Start 2P', 'VT323', ui-monospace, monospace;
+    --term-font: 'Cascadia Mono', 'Cascadia Code', Consolas, 'Courier New', 'Lucida Console', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--pixel-font);
+    font-size: 16px;
+    line-height: 1.35;
+    -webkit-font-smoothing: none;
+    font-smooth: never;
+    text-rendering: optimizeSpeed;
+    overflow: hidden;
+  }
+  #app { display: flex; flex-direction: column; height: 100vh; }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 18px;
+    background: linear-gradient(90deg, var(--panel), var(--panel-2));
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  header .logo {
+    font-family: var(--pixel-font-display);
+    font-weight: 400; letter-spacing: 1px; color: var(--accent);
+    text-shadow: 0 0 8px rgba(255,255,255,0.35);
+    font-size: 13px;
+  }
+  header .spacer { flex: 1; }
+  .iconBtn {
+    width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid transparent; color: var(--muted);
+    cursor: pointer; transition: all .12s ease;
+  }
+  .iconBtn:hover { background: var(--panel-3); border-color: var(--border); color: var(--accent); }
+  .iconBtn svg { width: 16px; height: 16px; }
+
+  /* ---------- tab bar ---------- */
+  #tabbar { display: flex; align-items: stretch; gap: 0; padding: 6px 8px 0; background: var(--panel); border-bottom: 1px solid var(--border); overflow-x: auto; flex-shrink: 0; scrollbar-width: thin; }
+  #tabbar::-webkit-scrollbar { height: 4px; }
+  #tabbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  #tabbar::-webkit-scrollbar-track { background: transparent; }
+  .tab {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 8px 6px 12px; cursor: pointer; user-select: none;
+    color: var(--muted); background: transparent;
+    white-space: nowrap; max-width: 160px; position: relative;
+    font-size: 15px; border-bottom: 2px solid transparent;
+    transition: color .15s, background .15s, border-color .15s;
+    min-width: 0;
+  }
+  .tab .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 20px; }
+  .tab:hover { color: var(--accent); background: var(--panel-2); }
+  .tab.active { color: var(--accent); background: var(--panel-2); border-bottom-color: var(--accent-dim); }
+  .tab .tabBtn {
+    width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: transparent; font-size: 14px; line-height: 1; transition: color .12s, background .12s;
+  }
+  .tab:hover .tabBtn { color: var(--muted-dim); }
+  .tab .closeX:hover { color: var(--err); background: rgba(255,80,80,0.12); }
+  .tab .forkX:hover { color: var(--accent); background: rgba(255,255,255,0.08); }
+  #body.split #stageWrap { flex-direction: row; }
+  #body.split .stage.active { display: flex; }
+  #body.split .stage { border-right: 1px solid var(--border); }
+  #body.split .stage:last-child { border-right: none; }
+  #newTabBtn {
+    width: 28px; align-self: stretch; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; border: none; color: var(--muted-dim); cursor: pointer;
+    font-size: 18px; transition: color .15s, background .15s; border-radius: 0;
+  }
+  #newTabBtn:hover { color: var(--accent); background: var(--panel-2); }
+
+  /* ---------- layout ---------- */
+  #body { flex: 1; display: flex; min-height: 0; }
+  #stageWrap { flex: 1; display: flex; min-width: 0; position: relative; }
+  #stageWrap::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url('bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.2;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .stage { position: relative; z-index: 1; }
+  .stage { flex: 1; display: none; flex-direction: column; min-width: 0; }
+  .stage.active { display: flex; }
+
+  /* ---------- console output ---------- */
+  .consoleEl { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 22px 8px; display: flex; flex-direction: column; font-family: var(--term-font); }
+  /* Spacer grows to push content to the bottom when there's room, but shrinks
+     so the console can scroll normally once content overflows. */
+  .consoleEl::before { content: ''; flex: 1 0 auto; }
+  .entry { margin-bottom: 10px; }
+  .entry .cmdline { color: var(--text); display: flex; gap: 8px; }
+  .entry .cmdline .arrow { color: var(--accent-2); font-weight: 700; }
+  .out { white-space: pre-wrap !important; word-break: break-word; }
+  .entry .out { margin-top: 3px; padding-left: 20px; }
+  .out.ok { color: var(--ok); border-left: 2px solid var(--muted-dim); padding-left: 8px; margin-left: -2px; }
+  .out.err { color: var(--err); font-weight: 700; border-left: 2px solid var(--text); padding-left: 8px; margin-left: -2px; }
+  .out.sys { color: var(--muted); }
+  .out.art { line-height: 1; }
+  .welcome { color: var(--muted-dim); padding-left: 20px; font-size: 16px; }
+
+  /* ---------- input row ---------- */
+  .inputWrap { position: relative; flex-shrink: 0; padding: 10px 22px 18px; }
+  .inputRow { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
+  .inputRow.focused { border-color: var(--accent-dim); box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
+  .arrowPrompt { color: var(--accent-2); font-weight: 700; letter-spacing: 1px; user-select: none; }
+  .cmdInput { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-family: var(--term-font); font-size: 16px; caret-color: var(--accent); }
+  .cmdInput::placeholder { color: var(--muted-dim); }
+
+  /* ---------- suggestion palette ---------- */
+  .suggest { position: absolute; left: 22px; right: 22px; bottom: calc(100% + 6px); background: var(--panel); border: 1px solid var(--border); border-radius: 10px; max-height: 320px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none; }
+  .suggest.open { display: block; }
+  .suggest .groupLabel { color: var(--muted-dim); font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; padding: 10px 14px 6px; }
+  .sItem { display: flex; align-items: center; gap: 12px; padding: 8px 14px; cursor: pointer; border-radius: 6px; margin: 0 6px; }
+  .sItem:hover, .sItem.active { background: var(--panel-2); }
+  .sItem.active { box-shadow: inset 2px 0 0 var(--accent-2); }
+  .sItem .meta { min-width: 0; }
+  .sItem .nameRow { display: flex; align-items: baseline; gap: 8px; }
+  .sItem .name { color: var(--text); font-weight: 600; font-size: 18px; }
+  .sItem .args { color: var(--muted-dim); font-weight: 400; font-size: 15px; }
+  .sItem .tag { color: var(--muted); font-size: 13px; border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
+  .sItem .desc { color: var(--muted); font-size: 15px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .suggest .empty { padding: 16px; color: var(--muted-dim); text-align: center; font-size: 15px; }
+
+  /* ---------- settings modal ---------- */
+  #overlay { position: fixed; inset: 0; background: rgba(6,3,10,0.6); backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center; z-index: 50; }
+  #overlay.open { display: flex; }
+  #settingsPanel { width: 340px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+  #settingsPanel h2 { margin: 0 0 4px; font-size: 20px; color: var(--accent); font-weight: 400; }
+  #settingsPanel .sub { color: var(--muted-dim); font-size: 15px; margin: 0 0 18px; }
+  .settingRow { margin-bottom: 16px; }
+  .settingRow label { display: block; color: var(--muted); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .swatches { display: flex; gap: 8px; }
+  .swatch { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+  .swatch.selected { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px currentColor; }
+  .segmented { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .segmented button { flex: 1; border: none; background: var(--panel-2); color: var(--muted); padding: 7px 0; cursor: pointer; font-family: inherit; font-size: 16px; }
+  .segmented button.selected { background: var(--accent-dim); color: #fff; }
+  #closeSettings { width: 100%; margin-top: 4px; padding: 9px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); cursor: pointer; font-family: inherit; font-size: 16px; }
+  #closeSettings:hover { border-color: var(--accent-dim); color: var(--accent); }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--panel-3); border-radius: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  /* ---------- split-view tab badges ---------- */
+  .stage .splitTag { display: none; padding: 4px 10px; color: var(--muted-dim); font-size: 13px; border-bottom: 1px solid var(--border); }
+  #body.split .stage.active .splitTag { display: block; }
+
+  /* ---------- settings: sectioned ---------- */
+  #settingsPanel { width: 560px; max-width: 94vw; max-height: 86vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  #settingsPanel h2 { margin: 0; padding: 16px 18px; font-size: 20px; color: var(--accent); font-weight: 400; border-bottom: 1px solid var(--border); }
+  .settingsBody { display: flex; min-height: 0; flex: 1; }
+  .settingsNav { width: 150px; flex-shrink: 0; border-right: 1px solid var(--border); padding: 10px 0; background: var(--panel-2); }
+  .settingsNav button { display: block; width: 100%; text-align: left; padding: 10px 16px; background: transparent; border: none; color: var(--muted); cursor: pointer; font-family: inherit; font-size: 15px; border-left: 2px solid transparent; }
+  .settingsNav button:hover { color: var(--accent); }
+  .settingsNav button.selected { color: var(--accent); border-left-color: var(--accent-2); background: var(--panel-3); }
+  .settingsContent { flex: 1; overflow-y: auto; padding: 18px; }
+  .settingsSection { display: none; }
+  .settingsSection.active { display: block; }
+  .settingsSection h3 { margin: 0 0 14px; font-size: 16px; color: var(--accent); font-weight: 400; text-transform: uppercase; letter-spacing: 1.5px; }
+  .settingsSection p.muted { color: var(--muted-dim); font-size: 15px; line-height: 1.5; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; color: var(--muted); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .field input[type="text"], .field input[type="password"] {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: inherit; font-size: 16px; padding: 8px 10px; outline: none;
+  }
+  .field input:focus { border-color: var(--accent-dim); }
+  .secretRow { display: flex; gap: 8px; margin-bottom: 8px; }
+  .secretRow input { flex: 1; }
+  .secretRow .delBtn { width: 34px; flex-shrink: 0; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); cursor: pointer; font-family: inherit; font-size: 15px; }
+  .secretRow .delBtn:hover { color: var(--err); border-color: var(--text); }
+  .addSecret { background: transparent; border: 1px dashed var(--border); border-radius: 8px; color: var(--muted); padding: 7px 12px; cursor: pointer; font-family: inherit; font-size: 15px; }
+  .addSecret:hover { color: var(--accent); border-color: var(--accent-dim); }
+  .bigBtn { width: 100%; margin-top: 6px; padding: 10px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); cursor: pointer; font-family: inherit; font-size: 16px; }
+  .bigBtn:hover { border-color: var(--accent-dim); color: var(--accent); }
+
+  /* ---------- update popup ---------- */
+  #updatePopup { position: fixed; inset: 0; background: rgba(6,3,10,0.6); backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center; z-index: 60; }
+  #updatePopup.open { display: flex; }
+  #updateCard { width: 460px; max-width: 92vw; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+  #updateCard h2 { margin: 0; font-size: 20px; color: var(--accent); font-weight: 400; }
+  #updateCard .upHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  #updateCard .upClose { flex: none; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; }
+  #updateCard .upClose:hover { border-color: var(--err); color: var(--err); }
+  #updateCard .upName { color: var(--muted); font-size: 16px; margin-bottom: 12px; }
+  #updateCard .upNotes { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; font-size: 15px; color: var(--text); margin-bottom: 16px; }
+  #updateCard .upActions { display: flex; gap: 10px; }
+  #updateCard .upActions button { flex: 1; padding: 9px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); cursor: pointer; font-family: inherit; font-size: 16px; }
+  #updateCard .upActions button.primary { border-color: var(--accent-dim); color: var(--accent); }
+  #updateCard .upActions button:hover { border-color: var(--accent); }
+  .progressWrap { display: none; margin-top: 14px; }
+  .progressWrap.show { display: block; }
+  .progressBar { height: 10px; background: var(--panel-3); border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+  .progressBar > div { height: 100%; width: 0%; background: var(--accent); transition: width .15s ease; }
+  .progressPct { color: var(--muted); font-size: 14px; margin-top: 6px; text-align: right; }
+  .restartNote { display: none; margin-top: 12px; color: var(--accent); font-size: 15px; }
+  .restartNote.show { display: block; }
+
+  .badge { display: inline-block; padding: 1px 6px; border: 1px solid var(--border); border-radius: 4px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <span class="logo" id="headerTitle">EMTYPYIE.CLI@3.2.0</span>
+    <span class="spacer"></span>
+    <button class="iconBtn" id="splitBtn" title="Toggle split view">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="8" height="16" rx="1"></rect>
+        <rect x="13" y="4" width="8" height="16" rx="1"></rect>
+      </svg>
+    </button>
+    <button class="iconBtn" id="settingsBtn" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
+  </header>
+
+  <div id="tabbar"><button id="newTabBtn" title="New session">+</button></div>
+
+  <div id="body">
+    <div id="stageWrap"></div>
+  </div>
+</div>
+
+<div id="overlay">
+  <div id="settingsPanel">
+    <h2>Settings</h2>
+    <div class="settingsBody">
+      <div class="settingsNav" id="settingsNav">
+        <button data-section="appearance" class="selected">Appearance</button>
+        <button data-section="environment">Environment</button>
+        <button data-section="about">About</button>
+        <button data-section="updates">Updates</button>
+        <button data-section="developer">Developer</button>
+      </div>
+      <div class="settingsContent">
+        <!-- Appearance -->
+        <div class="settingsSection active" data-section="appearance">
+          <h3>Appearance</h3>
+          <div class="settingRow">
+            <label>Accent color</label>
+            <div class="swatches" id="swatches"></div>
+          </div>
+          <div class="settingRow">
+            <label>Font size</label>
+            <div class="segmented" id="fontSize">
+              <button data-size="16" class="selected">M</button>
+            </div>
+          </div>
+        </div>
+        <!-- Environment -->
+        <div class="settingsSection" data-section="environment">
+          <h3>Environment</h3>
+          <p class="muted">Universal secret environment for emtypyie.cli. Stored locally in <span class="badge">~/.emtypyie/env.json</span>.</p>
+          <div class="field">
+            <label>GitHub token</label>
+            <input type="password" id="envGithub" placeholder="ghp_..." autocomplete="off" />
+          </div>
+          <div class="field">
+            <label>npm token</label>
+            <input type="password" id="envNpm" placeholder="npm_..." autocomplete="off" />
+          </div>
+          <div class="field">
+            <label>Git username</label>
+            <input type="text" id="envUser" placeholder="myrachane" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label>Git email</label>
+            <input type="text" id="envEmail" placeholder="you@example.com" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label>Custom secrets</label>
+            <div id="customSecrets"></div>
+            <button class="addSecret" id="addSecret">+ Add secret</button>
+          </div>
+          <button class="bigBtn" id="saveEnv">Save environment</button>
+        </div>
+        <!-- About -->
+        <div class="settingsSection" data-section="about">
+          <h3>About</h3>
+          <p class="muted" id="aboutText"></p>
+        </div>
+        <!-- Updates -->
+        <div class="settingsSection" data-section="updates">
+          <h3>Updates</h3>
+          <p class="muted" id="updateStatus">Last checked: never.</p>
+          <button class="bigBtn" id="checkUpdatesBtn">Check for updates</button>
+        </div>
+        <!-- Developer -->
+        <div class="settingsSection" data-section="developer">
+          <h3>Developer options</h3>
+          <p class="muted">Stay tuned</p>
+        </div>
+      </div>
+    </div>
+    <div style="padding: 12px 18px; border-top: 1px solid var(--border);">
+      <button id="closeSettings">Done</button>
+    </div>
+  </div>
+</div>
+
+<div id="updatePopup">
+  <div id="updateCard">
+    <div class="upHead">
+      <h2 id="upHeading">Update available</h2>
+      <button class="upClose" id="upClose" title="Close">&#x2715;</button>
+    </div>
+    <div class="upName" id="upName"></div>
+    <div class="upNotes" id="upNotes"></div>
+    <div class="upActions" id="upActions">
+      <button id="upLater">Not now</button>
+      <button class="primary" id="upNow">Update</button>
+    </div>
+    <div class="progressWrap" id="upProgressWrap">
+      <div class="progressBar"><div id="upProgressFill"></div></div>
+      <div class="progressPct" id="upProgressPct">0%</div>
+    </div>
+    <div class="restartNote" id="upRestart">Update installed. A restart is required to apply.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const VERSION = '3.0.0';
+  document.title = `Emtypyie.cli@${VERSION}`;
+  document.getElementById('headerTitle').textContent = `EMTYPYIE.CLI@${VERSION}`;
+
+  // The Baking Bread loaf art (shown on /about).
+  const BREAD_ART = [
+    '░░                                                                  ',
+    '                                                ██████████████          ',
+    '                                        ████████▓▓▓▓██░░░░██▓▓████      ',
+    '                                ████████░░░░░░░░██▓▓██░░░░██▓▓▓▓▓▓██    ',
+    '                            ████░░██▓▓▓▓██░░░░░░██▓▓▓▓██░░██▓▓▓▓▓▓▓▓██  ',
+    '                        ████░░░░░░░░██▓▓▓▓██░░░░██▓▓▓▓██░░██▓▓▓▓▓▓▓▓██  ',
+    '                      ██▓▓▓▓██░░░░░░░░██▓▓▓▓██░░██▓▓▓▓██░░██▓▓▓▓▓▓██    ',
+    '                    ██▓▓▓▓▓▓▓▓██░░░░░░██▓▓▓▓██░░██▓▓▓▓██░░██▓▓▓▓▓▓██    ',
+    '                    ██▓▓▓▓▓▓▓▓▓▓██░░░░██▓▓▓▓██░░██▓▓▓▓▓▓██▓▓▓▓▓▓▓▓██    ',
+    '                    ██▓▓▓▓▓▓▓▓▓▓▓▓██░░██▓▓▓▓▓▓██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓██      ',
+    '                    ██▓▓▓▓▓▓▓▓▓▓▓▓▓▓██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓████        ',
+    '                    ██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓████            ',
+    '                      ████▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓████                ',
+    '                          ██████▓▓▓▓▓▓▓▓▓▓▓▓██████                      ',
+    '                                  ████████████                         '
+  ].join('\n');
+
+  // Startup banner: classic figlet "emtypyie" art + version/tagline (no bread).
+  const STARTUP_BANNER = String.raw`___________        __                         .__                  .__  .__
+\_   _____/ ______/  |_ ___.__. ______ ___.__.|__| ____       ____ |  | |__|
+ |    __)_ /     \   __<   |  | \____ <   |  ||  |/ __ \    _/ ___
+ |        \  Y Y  \  |  \___  | |  |_> >___  ||  \  ___/    \  \___|  |_|  |
+/_______  /__|_|  /__|  / ____| |   __// ____||__|\___  > /\ \___  >____/__|
+  EMTYPYIE CLI v3.0.0
+  "Baking Bread"
+
+  ─────────────────────────────────────────────
+  "code. create. conquer."
+  ─────────────────────────────────────────────
+
+  Type /help for available commands.
+  ─────────────────────────────────────────────`;
+
+  // Real projects served by the CDN registry (cdn.emtypyie.in/dev/meta.json).
+  // /list fetches this live; these are kept in sync for suggestions/fork labels.
+  const PROJECTS = ['qrkraft', 'wcrawler'];
+
+  // ---------------- command registry (wired to the C engine via window.emt) ----------------
+  function runBrainfuck(code){
+    try {
+      let tape = new Array(256).fill(0), ptr = 0, out = '', i = 0, loopStack = [], steps = 0;
+      while (i < code.length) {
+        if (++steps > 100000) return 'error: step limit exceeded';
+        const c = code[i];
+        if (c === '>') ptr++;
+        else if (c === '<') ptr--;
+        else if (c === '+') tape[ptr] = (tape[ptr] + 1) % 256;
+        else if (c === '-') tape[ptr] = (tape[ptr] + 255) % 256;
+        else if (c === '.') out += String.fromCharCode(tape[ptr]);
+        else if (c === '[') { if (tape[ptr] === 0) { let d=1; while(d>0){i++; if(code[i]==='[')d++; if(code[i]===']')d--;} } else loopStack.push(i); }
+        else if (c === ']') { if (tape[ptr] !== 0) i = loopStack[loopStack.length-1]; else loopStack.pop(); }
+        i++;
+      }
+      return out || '(no output)';
+    } catch(e) { return 'error: ' + e.message; }
+  }
+
+  function line(text, cls, extra){ return { text: text == null ? '' : String(text), cls: cls || 'sys', extra: extra || '' }; }
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  function engineOutToLine(res){
+    if (!res) return line('(no response)', 'sys');
+    const ok = res.ok !== false;
+    let msg = res.msg;
+    if (typeof msg === 'object') msg = JSON.stringify(msg);
+    return line(stripAnsi(msg || (ok ? 'ok' : 'failed')), ok ? 'ok' : 'err');
+  }
+
+  // Strip ANSI escape sequences so C-engine output renders cleanly in the DOM.
+  function stripAnsi(s){
+    if (!s) return '';
+    return s
+      .replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '')
+      .replace(/\x1b\][^\x07]*\x07?/g, '')
+      .replace(/\x1b[()][AB0-2]/g, '');
+  }
+
+  // Run a C-engine command and never fail silently: surface spawn/IPC errors.
+  // opts.raw => display the engine's real human output (banner, lists, info).
+  function safeExec(cmd, arg, opts){
+    if (typeof window.emt === 'undefined' || !window.emt.exec) {
+      return Promise.resolve(line('bridge error: window.emt is unavailable (GUI not running under Electron?)', 'err'));
+    }
+    return window.emt.exec(cmd, arg, opts || {})
+      .then((res) => {
+        if (opts && opts.raw) return line(stripAnsi(typeof res === 'string' ? res : ''), 'ok');
+        return engineOutToLine(res);
+      })
+      .catch(e => line('engine error: ' + (e && e.message ? e.message : e), 'err'));
+  }
+
+  const COMMANDS = [
+    { name: 'help',      args: '',          desc: 'Show all available commands' },
+    { name: 'about',     args: '',          desc: 'Show version and build info' },
+    { name: 'list',      args: '',          desc: 'List all available projects' },
+    { name: 'get',       args: '<project>', desc: 'Fetch a project by name' },
+    { name: 'info',      args: '<project>', desc: 'Show details about a project' },
+    { name: 'flash',     args: '<project>', desc: 'Re-download latest version' },
+    { name: 'rm',        args: '<project>', desc: 'Delete project files' },
+    { name: 'run',       args: '<project>', desc: 'Launch/run a project' },
+    { name: 'docs',      args: '<project>', desc: 'Open project documentation' },
+    { name: 'issue',     args: '<project>', desc: 'Open project issue tracker' },
+    { name: 'wrap',      args: '<project>', desc: 'Wrap/bundle a project' },
+    { name: 'theme',     args: '[color]',   desc: 'Change terminal accent theme' },
+    { name: 'setenv',    args: '',          desc: 'Set environment variables' },
+    { name: 'bakafetch', args: '',          desc: 'Show system info (bakafetch)' },
+    { name: 'bf',        args: '',          desc: 'Alias for /bakafetch' },
+    { name: 'wiki',      args: '',          desc: 'Open wiki.emtypyie.in' },
+    { name: 'changelog', args: '',          desc: "What's new / release changelog" },
+    { name: 'larpino',   args: '<cmd>',     desc: 'LLM chat: enable|disable|status' },
+    { name: 'update',    args: '',          desc: 'Check for engine updates' },
+    { name: 'clear',     args: '',          desc: 'Clear the console' },
+  ];
+
+  // ---------------- tab / session management ----------------
+  const tabbar = document.getElementById('tabbar');
+  const stageWrap = document.getElementById('stageWrap');
+  let tabs = [];
+  let activeId = null;
+  let splitIds = [];        // up to 2 ids shown in split view
+  let splitMode = false;
+  let tabCounter = 0;
+
+  function createTab(makeActive, project){
+    tabCounter++;
+    const id = 'tab' + tabCounter;
+    const title = project ? project : ('session ' + tabCounter);
+
+    const tabEl = document.createElement('div');
+    tabEl.className = 'tab';
+    tabEl.dataset.id = id;
+    tabEl.title = title;
+    tabEl.innerHTML = `<span class="tabBtn forkX" title="Fork (parallel engine)">&#x22D4;</span><span class="title">${escapeHtml(title)}</span><span class="tabBtn closeX" title="Close">&#x2715;</span>`;
+    tabEl.addEventListener('click', (e) => {
+      if (e.target.classList.contains('closeX')) { closeTab(id); return; }
+      if (e.target.classList.contains('forkX')) { forkTab(id); return; }
+      switchTab(id);
+    });
+    tabEl.addEventListener('mousedown', (e) => {
+      if (e.button === 1) { e.preventDefault(); closeTab(id); }
+    });
+    tabEl.addEventListener('dblclick', (e) => {
+      if (e.target.classList.contains('title')) {
+        const newName = prompt('Rename tab:', tabEl.querySelector('.title').textContent);
+        if (newName && newName.trim()) {
+          tabEl.querySelector('.title').textContent = newName.trim();
+          tabEl.title = newName.trim();
+          const s = tabs.find(t => t.id === id);
+          if (s) s.title = newName.trim();
+        }
+      }
+    });
+    tabbar.insertBefore(tabEl, document.getElementById('newTabBtn'));
+
+    const stage = document.createElement('div');
+    stage.className = 'stage';
+    stage.innerHTML = `
+      <div class="splitTag"></div>
+      <div class="consoleEl"><div class="welcome">New session. Type <b style="color:var(--accent)">/</b> to see available commands.</div></div>
+      <div class="inputWrap">
+        <div class="suggest"></div>
+        <div class="inputRow">
+          <span class="arrowPrompt">&gt;&gt;</span>
+          <input class="cmdInput" type="text" autocomplete="off" spellcheck="false" placeholder="type a command… try /about" />
+        </div>
+      </div>`;
+    stageWrap.appendChild(stage);
+
+    const session = {
+      id, title, project: project || null, tabEl, stage,
+      consoleEl: stage.querySelector('.consoleEl'),
+      input: stage.querySelector('.cmdInput'),
+      inputRow: stage.querySelector('.inputRow'),
+      suggestEl: stage.querySelector('.suggest'),
+      splitTag: stage.querySelector('.splitTag'),
+      cmdHistory: [], historyIndex: 0,
+      suggestions: [], activeIndex: 0, paletteOpen: false,
+      draft: '',
+      _buf: ''
+    };
+    wireSession(session);
+    tabs.push(session);
+    if (window.emt && window.emt.openTab) window.emt.openTab(id, project);
+    if (makeActive) { switchTab(id); }
+    return session;
+  }
+
+  function closeTab(id){
+    const idx = tabs.findIndex(t => t.id === id);
+    if (idx === -1) return;
+    if (tabs.length <= 1) return;
+    const [removed] = tabs.splice(idx, 1);
+    removed.tabEl.remove();
+    removed.stage.remove();
+    if (window.emt && window.emt.closeTab) window.emt.closeTab(id);
+    splitIds = splitIds.filter(x => x !== id);
+    if (activeId === id) {
+      const next = tabs[idx] || tabs[idx - 1];
+      switchTab(next.id);
+    }
+  }
+
+  function forkTab(id){
+    const src = tabs.find(t => t.id === id);
+    if (!src) return;
+    const project = src.project || src.title;
+    const s = createTab(true, project + ' (fork)');
+    s.project = project;
+    src.consoleEl.querySelectorAll('.entry').forEach(e => {
+      s.consoleEl.appendChild(e.cloneNode(true));
+    });
+    if (splitMode) { enableSplit(); }
+  }
+
+  function switchTab(id){
+    activeId = id;
+    if (!splitMode) {
+      tabs.forEach(t => {
+        const isActive = t.id === id;
+        t.tabEl.classList.toggle('active', isActive);
+        t.stage.classList.toggle('active', isActive);
+        if (isActive) { t.input.focus(); t.consoleEl.scrollTop = t.consoleEl.scrollHeight; }
+      });
+    } else {
+      if (splitIds.length === 0) splitIds = [id];
+      else if (!splitIds.includes(id)) splitIds[1] = id;
+      else splitIds[0] = id;
+      renderSplit();
+    }
+  }
+
+  function enableSplit(){
+    splitMode = true;
+    document.getElementById('body').classList.add('split');
+    if (splitIds.length === 0) splitIds = [activeId];
+    if (splitIds.length === 1 && tabs.length > 1) {
+      const other = tabs.find(t => t.id !== splitIds[0]);
+      if (other) splitIds.push(other.id);
+    }
+    renderSplit();
+  }
+  function disableSplit(){
+    splitMode = false;
+    document.getElementById('body').classList.remove('split');
+    splitIds = [];
+    switchTab(activeId);
+  }
+  function renderSplit(){
+    tabs.forEach(t => {
+      const shown = splitIds.includes(t.id);
+      t.stage.classList.toggle('active', shown);
+      t.tabEl.classList.toggle('active', t.id === activeId || (splitMode && shown));
+      t.splitTag.textContent = 'Engine ' + t.id;
+      if (shown) { t.consoleEl.scrollTop = t.consoleEl.scrollHeight; }
+    });
+  }
+
+  function getSession(){ return tabs.find(t => t.id === activeId); }
+
+  function pushEntry(session, cmdText, result){
+    const welcome = session.consoleEl.querySelector('.welcome');
+    if (welcome) welcome.remove();
+    const entry = document.createElement('div');
+    entry.className = 'entry';
+    const cmdline = document.createElement('div');
+    cmdline.className = 'cmdline';
+    cmdline.innerHTML = `<span class="arrow">&gt;&gt;</span><span>${escapeHtml(cmdText)}</span>`;
+    entry.appendChild(cmdline);
+    if (result) {
+      const out = document.createElement('div');
+      out.className = 'out ' + result.cls + (result.extra ? ' ' + result.extra : '');
+      out.textContent = result.text;
+      entry.appendChild(out);
+    }
+    session.consoleEl.appendChild(entry);
+    session.consoleEl.scrollTop = session.consoleEl.scrollHeight;
+  }
+
+  function currentCommandToken(session){
+    const v = session.input.value;
+    if (!v.startsWith('/')) return null;
+    if (v.includes(' ')) return null;
+    return v.slice(1);
+  }
+
+  function updateSuggestions(session){
+    const token = currentCommandToken(session);
+    if (token === null) { closePalette(session); return; }
+    const q = token.toLowerCase();
+    const filtered = q === '' ? COMMANDS : COMMANDS.filter(c => c.name.toLowerCase().includes(q));
+    session.suggestions = filtered;
+    session.activeIndex = 0;
+    if (filtered.length === 0) {
+      openPalette(session);
+      session.suggestEl.innerHTML = `<div class="empty">no matching command</div>`;
+    } else {
+      renderPalette(session, token === '');
+      openPalette(session);
+    }
+  }
+
+  function renderPalette(session, isFrequent){
+    let html = `<div class="groupLabel">${isFrequent ? 'Frequently Used' : 'Matching'}</div>`;
+    session.suggestions.forEach((c, idx) => {
+      const activeCls = idx === session.activeIndex ? ' active' : '';
+      const tag = c.optional ? `<span class="tag">+${c.optional} optional</span>` : '';
+      html += `
+        <div class="sItem${activeCls}" data-idx="${idx}">
+          <div class="meta">
+            <div class="nameRow">
+              <span class="name">/${c.name}</span>
+              ${c.args ? `<span class="args">${escapeHtml(c.args)}</span>` : ''}
+              ${tag}
+            </div>
+            <div class="desc">${escapeHtml(c.desc)}</div>
+          </div>
+        </div>`;
+    });
+    session.suggestEl.innerHTML = html;
+    [...session.suggestEl.querySelectorAll('.sItem')].forEach(el => {
+      el.addEventListener('mousemove', () => setActive(session, parseInt(el.dataset.idx, 10)));
+      el.addEventListener('mousedown', (e) => { e.preventDefault(); acceptSuggestion(session, parseInt(el.dataset.idx, 10)); });
+    });
+    scrollActiveIntoView(session);
+  }
+
+  function setActive(session, idx){
+    session.activeIndex = idx;
+    [...session.suggestEl.querySelectorAll('.sItem')].forEach(el => {
+      el.classList.toggle('active', parseInt(el.dataset.idx, 10) === idx);
+    });
+    scrollActiveIntoView(session);
+  }
+
+  function scrollActiveIntoView(session){
+    const el = session.suggestEl.querySelector('.sItem.active');
+    if (el) el.scrollIntoView({ block: 'nearest' });
+  }
+
+  function openPalette(session){ session.paletteOpen = true; session.suggestEl.classList.add('open'); }
+  function closePalette(session){ session.paletteOpen = false; session.suggestEl.classList.remove('open'); session.suggestions = []; }
+
+  function acceptSuggestion(session, idx){
+    const c = session.suggestions[idx];
+    if (!c) return;
+    session.input.value = '/' + c.name + ' ';
+    closePalette(session);
+    session.input.focus();
+  }
+
+  function sendToEngine(session, cmd, arg){
+    if (!window.emt || !window.emt.send) {
+      const out = document.createElement('div');
+      out.className = 'out err';
+      out.textContent = 'bridge error: window.emt unavailable';
+      session.consoleEl.lastChild.appendChild(out);
+      session.consoleEl.scrollTop = session.consoleEl.scrollHeight;
+      return;
+    }
+    // Mark that the last entry is waiting for engine output.
+    const lastEntry = session.consoleEl.lastChild;
+    if (lastEntry) lastEntry.dataset.waiting = '1';
+    window.emt.send(session.id, cmd, arg || '');
+  }
+
+  function processEngineOutput(session, txt){
+    session._buf += txt + '\n';
+    let idx;
+    while ((idx = session._buf.indexOf('__EMT_READY__')) !== -1) {
+      const before = session._buf.slice(0, idx);
+      if (before.trim()) {
+        const stripped = stripAnsi(before);
+        const lastEntry = session.consoleEl.lastChild;
+        if (lastEntry && lastEntry.dataset.waiting === '1') {
+          delete lastEntry.dataset.waiting;
+          const out = document.createElement('div');
+          out.className = 'out ok';
+          out.textContent = stripped;
+          lastEntry.appendChild(out);
+          session.consoleEl.scrollTop = session.consoleEl.scrollHeight;
+        }
+      }
+      session._buf = session._buf.slice(idx + 13);
+      if (session._buf[0] === '\n') session._buf = session._buf.slice(1);
+    }
+  }
+
+  function executeLine(session, raw){
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+    const match = trimmed.match(/^\/(\S+)\s*(.*)$/);
+    const entry = document.createElement('div');
+    entry.className = 'entry';
+    entry.innerHTML = `<div class="cmdline"><span class="arrow">&gt;&gt;</span><span>${escapeHtml(trimmed)}</span></div>`;
+    session.consoleEl.appendChild(entry);
+    session.consoleEl.scrollTop = session.consoleEl.scrollHeight;
+    if (match) {
+      const [, name, rest] = match;
+      sendToEngine(session, name.toLowerCase(), rest && rest.trim());
+      if (name.toLowerCase() === 'clear') {
+        setTimeout(() => { session.consoleEl.innerHTML = ''; }, 0);
+      }
+    } else {
+      sendToEngine(session, trimmed, '');
+    }
+    session.cmdHistory.push(trimmed);
+    session.historyIndex = session.cmdHistory.length;
+  }
+
+  function wireSession(session){
+    session.input.addEventListener('focus', () => session.inputRow.classList.add('focused'));
+    session.input.addEventListener('blur', () => session.inputRow.classList.remove('focused'));
+    session.input.addEventListener('input', () => updateSuggestions(session));
+    session.input.addEventListener('keydown', (e) => {
+      // Palette navigation (only consumes Up/Down/Tab/Escape while open).
+      if (session.paletteOpen && session.suggestions.length > 0) {
+        if (e.key === 'ArrowDown') { e.preventDefault(); setActive(session, (session.activeIndex + 1) % session.suggestions.length); return; }
+        if (e.key === 'ArrowUp')   { e.preventDefault(); setActive(session, (session.activeIndex - 1 + session.suggestions.length) % session.suggestions.length); return; }
+        if (e.key === 'Tab') { e.preventDefault(); acceptSuggestion(session, session.activeIndex); return; }
+        if (e.key === 'Escape') { e.preventDefault(); closePalette(session); return; }
+      } else {
+        if (e.key === 'ArrowUp') {
+          if (session.cmdHistory.length === 0) return;
+          e.preventDefault();
+          session.historyIndex = Math.max(0, session.historyIndex - 1);
+          session.input.value = session.cmdHistory[session.historyIndex] || '';
+          return;
+        }
+        if (e.key === 'ArrowDown') {
+          if (session.cmdHistory.length === 0) return;
+          e.preventDefault();
+          session.historyIndex = Math.min(session.cmdHistory.length, session.historyIndex + 1);
+          session.input.value = session.cmdHistory[session.historyIndex] || '';
+          return;
+        }
+      }
+      // Enter always executes the typed command (whether or not the palette is open).
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        executeLine(session, session.input.value);
+        session.input.value = '';
+        closePalette(session);
+        return;
+      }
+    });
+    document.addEventListener('click', (e) => {
+      if (!session.inputRow.contains(e.target) && !session.suggestEl.contains(e.target)) closePalette(session);
+    });
+  }
+
+  // Wire persistent engine listeners before creating any tab.
+  if (typeof window.emt !== 'undefined' && window.emt.exec) {
+    if (window.emt.onTabData) {
+      window.emt.onTabData(({ tabId, txt }) => {
+        const session = tabs.find(t => t.id === tabId);
+        if (session) processEngineOutput(session, txt);
+      });
+    }
+    if (window.emt.onTabExit) {
+      window.emt.onTabExit(({ tabId }) => {
+        const session = tabs.find(t => t.id === tabId);
+        if (!session) return;
+        pushEntry(session, '', line('engine process exited', 'err'));
+      });
+    }
+  }
+
+  // ---------------- new tab button ----------------
+  const newTabBtn = document.getElementById('newTabBtn');
+  newTabBtn.addEventListener('click', () => createTab(true));
+
+  createTab(true);
+
+  // If the engine bridge is missing, the app was not launched through Electron.
+  if (typeof window.emt === 'undefined' || !window.emt.exec) {
+    const s = getSession();
+    if (s) pushEntry(s, '', line('This GUI must be launched through Electron (run "npm start" in the Root4gui folder). Opening index.html directly has no engine bridge, so commands cannot run.', 'err'));
+  } else {
+    // Show the EMTYPYIE.CLI + Baking Bread banner on open.
+    (function showBanner(){
+      const s = tabs[0];
+      if (!s) return;
+      const welcome = s.consoleEl.querySelector('.welcome');
+      if (welcome) welcome.remove();
+      const art = document.createElement('div');
+      art.className = 'out ok art';
+      art.style.whiteSpace = 'pre-wrap';
+      art.textContent = STARTUP_BANNER;
+      s.consoleEl.appendChild(art);
+      s.consoleEl.scrollTop = s.consoleEl.scrollHeight;
+    })();
+  }
+
+  // ---------------- keyboard: tab cycling ----------------
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Tab') {
+      e.preventDefault();
+      if (tabs.length < 2) return;
+      const idx = tabs.findIndex(t => t.id === activeId);
+      const dir = e.shiftKey ? -1 : 1;
+      const next = tabs[(idx + dir + tabs.length) % tabs.length];
+      if (next) switchTab(next.id);
+    }
+  });
+
+  // ---------------- split view ----------------
+  document.getElementById('splitBtn').addEventListener('click', () => {
+    if (splitMode) disableSplit(); else enableSplit();
+  });
+
+  // ---------------- settings ----------------
+  const overlay = document.getElementById('overlay');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const closeSettingsBtn = document.getElementById('closeSettings');
+  const swatchesEl = document.getElementById('swatches');
+  const fontSizeEl = document.getElementById('fontSize');
+  const root = document.documentElement.style;
+
+  const ACCENTS = [
+    { name: 'white',      a: '#ffffff', a2: '#ffffff', dim: '#cccccc' },
+    { name: 'light gray', a: '#e0e0e0', a2: '#e0e0e0', dim: '#aaaaaa' },
+    { name: 'silver',     a: '#bbbbbb', a2: '#bbbbbb', dim: '#888888' },
+    { name: 'ash',        a: '#999999', a2: '#999999', dim: '#666666' },
+    { name: 'charcoal',   a: '#777777', a2: '#777777', dim: '#4a4a4a' },
+    { name: 'jet',        a: '#555555', a2: '#555555', dim: '#333333' },
+  ];
+  ACCENTS.forEach((c, i) => {
+    const sw = document.createElement('div');
+    sw.className = 'swatch' + (i === 0 ? ' selected' : '');
+    sw.style.background = c.a;
+    sw.style.color = c.a;
+    sw.dataset.name = c.name;
+    sw.title = c.name;
+    sw.addEventListener('click', () => {
+      root.setProperty('--accent', c.a);
+      root.setProperty('--accent-2', c.a2);
+      root.setProperty('--accent-dim', c.dim);
+      [...swatchesEl.children].forEach(el => el.classList.remove('selected'));
+      sw.classList.add('selected');
+    });
+    swatchesEl.appendChild(sw);
+  });
+
+  fontSizeEl.querySelectorAll('button').forEach(btn => {
+    if (btn.dataset.size === '18') btn.classList.add('selected');
+    btn.addEventListener('click', () => {
+      document.body.style.fontSize = btn.dataset.size + 'px';
+      fontSizeEl.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+
+  // settings nav
+  const nav = document.getElementById('settingsNav');
+  nav.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      nav.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      const sec = btn.dataset.section;
+      document.querySelectorAll('.settingsSection').forEach(s => s.classList.toggle('active', s.dataset.section === sec));
+      if (sec === 'about') fillAbout();
+      if (sec === 'environment') loadEnv();
+    });
+  });
+
+  settingsBtn.addEventListener('click', () => overlay.classList.add('open'));
+  closeSettingsBtn.addEventListener('click', () => { overlay.classList.remove('open'); getSession()?.input.focus(); });
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.classList.remove('open'); getSession()?.input.focus(); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay.classList.contains('open')) { overlay.classList.remove('open'); getSession()?.input.focus(); } });
+
+  // ---------------- Environment section (env.json) ----------------
+  const customSecretsEl = document.getElementById('customSecrets');
+  function addSecretRow(key, val){
+    const row = document.createElement('div');
+    row.className = 'secretRow';
+    row.innerHTML = `<input type="text" class="sk" placeholder="KEY" value="${escapeHtml(key||'')}" /><input type="password" class="sv" placeholder="value" value="${escapeHtml(val||'')}" /><button class="delBtn">&#x2715;</button>`;
+    row.querySelector('.delBtn').addEventListener('click', () => row.remove());
+    customSecretsEl.appendChild(row);
+  }
+  document.getElementById('addSecret').addEventListener('click', () => addSecretRow('', ''));
+
+  async function loadEnv(){
+    try {
+      const env = await window.emt.getEnv();
+      document.getElementById('envGithub').value = env.github_token || '';
+      document.getElementById('envNpm').value = env.npm_token || '';
+      document.getElementById('envUser').value = env.git_username || '';
+      document.getElementById('envEmail').value = env.git_email || '';
+      customSecretsEl.innerHTML = '';
+      const custom = env.custom || {};
+      Object.keys(custom).forEach(k => addSecretRow(k, custom[k]));
+      if (Object.keys(custom).length === 0) addSecretRow('', '');
+    } catch(e) { /* ignore */ }
+  }
+  document.getElementById('saveEnv').addEventListener('click', async () => {
+    const custom = {};
+    customSecretsEl.querySelectorAll('.secretRow').forEach(r => {
+      const k = r.querySelector('.sk').value.trim();
+      const v = r.querySelector('.sv').value;
+      if (k) custom[k] = v;
+    });
+    const env = {
+      github_token: document.getElementById('envGithub').value.trim(),
+      npm_token: document.getElementById('envNpm').value.trim(),
+      git_username: document.getElementById('envUser').value.trim(),
+      git_email: document.getElementById('envEmail').value.trim(),
+      custom
+    };
+    await window.emt.setEnv(env);
+    document.getElementById('saveEnv').textContent = 'Saved ✓';
+    setTimeout(() => { document.getElementById('saveEnv').textContent = 'Save environment'; }, 1500);
+  });
+
+  // ---------------- About section ----------------
+  function fillAbout(){
+    document.getElementById('aboutText').innerHTML =
+      `Emtypyie.cli@${VERSION}<br>` +
+      `Codename: <b style="color:var(--accent)">Baking Bread</b><br><br>` +
+      `DESIGNED AND ENGINEERED BY EMTYPYIE<br>` +
+      `Copyright 2026 EMTYPYIE. All rights reserved.`;
+  }
+
+  // ---------------- Update flow (Node-side GitHub fetch) ----------------
+  const updatePopup = document.getElementById('updatePopup');
+  const upHeading = document.getElementById('upHeading');
+  const upName = document.getElementById('upName');
+  const upNotes = document.getElementById('upNotes');
+  const upActions = document.getElementById('upActions');
+  const upProgressWrap = document.getElementById('upProgressWrap');
+  const upProgressFill = document.getElementById('upProgressFill');
+  const upProgressPct = document.getElementById('upProgressPct');
+  const upRestart = document.getElementById('upRestart');
+  const updateStatus = document.getElementById('updateStatus');
+  let pendingUpdate = null;
+
+  function closeUpdatePopup(){ updatePopup.classList.remove('open'); }
+
+  async function doUpdateCheck(showIfNone){
+    const res = await window.emt.checkUpdate();
+    const now = new Date().toLocaleString();
+    if (res && res.updateAvailable) {
+      pendingUpdate = res;
+      updateStatus.textContent = `Last checked: ${now}. Update available: ${res.name}.`;
+      upHeading.textContent = 'Update available';
+      upName.textContent = res.name;
+      upNotes.textContent = res.notes || '(no release notes)';
+      upActions.style.display = 'flex';
+      upProgressWrap.classList.remove('show');
+      upRestart.classList.remove('show');
+      updatePopup.classList.add('open');
+    } else {
+      updateStatus.textContent = `Last checked: ${now}. Up to date.`;
+      if (showIfNone) {
+        upHeading.textContent = 'You are up to date';
+        upName.textContent = 'No updates';
+        upNotes.textContent = 'You are on the latest build (' + VERSION + ').';
+        upActions.style.display = 'none';
+        upProgressWrap.classList.remove('show');
+        upRestart.classList.remove('show');
+        updatePopup.classList.add('open');
+      }
+    }
+  }
+
+  document.getElementById('checkUpdatesBtn').addEventListener('click', () => doUpdateCheck(true));
+
+  document.getElementById('upLater').addEventListener('click', closeUpdatePopup);
+  document.getElementById('upClose').addEventListener('click', closeUpdatePopup);
+  updatePopup.addEventListener('click', (e) => { if (e.target === updatePopup) closeUpdatePopup(); });
+  document.getElementById('upNow').addEventListener('click', async () => {
+    if (!pendingUpdate || !pendingUpdate.url) { updatePopup.classList.remove('open'); return; }
+    upActions.style.display = 'none';
+    upProgressWrap.classList.add('show');
+    upProgressFill.style.width = '0%';
+    upProgressPct.textContent = '0%';
+    await window.emt.applyUpdate(pendingUpdate.url);
+  });
+
+  window.emt.onUpdateProgress((pct) => {
+    const p = Math.max(0, Math.min(100, Math.round(pct)));
+    upProgressFill.style.width = p + '%';
+    upProgressPct.textContent = p + '%';
+  });
+  window.emt.onUpdateDone(() => {
+    upRestart.classList.add('show');
+  });
+
+  // auto-check on open
+  doUpdateCheck(false);
+})();
+</script>
+</body>
+</html>
