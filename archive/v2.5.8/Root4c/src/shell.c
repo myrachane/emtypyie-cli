@@ -160,6 +160,7 @@ bool self_update(void) {
 
     if (!download_zip_and_extract(url, extract_dir)) {
         printf("  %s\n", retro_err("Update download failed"));
+        dir_remove_recursive(extract_dir);
         return false;
     }
 
@@ -167,14 +168,47 @@ bool self_update(void) {
     snprintf(new_exe, sizeof(new_exe), "%s%cemtypyie.exe", extract_dir, PATH_SEP);
     if (!file_exists(new_exe)) {
         printf("  %s\n", retro_err("Updated executable not found"));
+        dir_remove_recursive(extract_dir);
         return false;
+    }
+
+    /* Basic integrity check: a Windows exe must start with the "MZ" DOS header. */
+    bool ok = false;
+    {
+        FILE *f = fopen(new_exe, "rb");
+        if (f) {
+            unsigned char hdr[2] = {0, 0};
+            if (fread(hdr, 1, 2, f) == 2 && hdr[0] == 'M' && hdr[1] == 'Z')
+                ok = true;
+            fclose(f);
+        }
+    }
+    if (!ok) {
+        printf("  %s\n", retro_err("Downloaded update is not a valid executable"));
+        dir_remove_recursive(extract_dir);
+        return false;
+    }
+
+    /* Replace the running binary with the new one so the update persists,
+       then re-exec our own (now updated) path. */
+    char self_path[MAX_PATH] = {0};
+    if (GetModuleFileName(NULL, self_path, MAX_PATH) == 0) self_path[0] = '\0';
+
+    if (self_path[0] && strcmp(self_path, new_exe) != 0) {
+        /* Try to overwrite ourselves; keep the extracted copy as fallback. */
+        if (!CopyFileA(new_exe, self_path, FALSE)) {
+            printf("  %s\n", retro_dim("Could not replace running binary; launching update directly."));
+        } else {
+            printf("  %s\n", retro_dim("Installed update to current location."));
+        }
     }
 
     printf("  %s %s\n", retro("Restarting with"), retro(ver));
     fflush(stdout);
 
     char cmd[4096];
-    snprintf(cmd, sizeof(cmd), "\"%s\"", new_exe);
+    snprintf(cmd, sizeof(cmd), "\"%s\"", self_path[0] ? self_path : new_exe);
+    dir_remove_recursive(extract_dir);
     spawn_detached(cmd);
     exit(0);
 }

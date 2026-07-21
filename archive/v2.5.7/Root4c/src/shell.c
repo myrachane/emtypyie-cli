@@ -121,7 +121,7 @@ static void handle_command(const char *input) {
 
     if (strcmp(cmd, "about") == 0) {
         printf("\n");
-        printf("  %s\n", retro_accent("EMTYPYIE CLI v2.5.7"));
+        printf("  %s\n", retro_accent("Emtypyie.cli@v2.5.7"));
         printf("  %s\n", retro_dim("\"Wandering Witches\""));
         printf("\n");
         static const char *WITCHES[] = {
