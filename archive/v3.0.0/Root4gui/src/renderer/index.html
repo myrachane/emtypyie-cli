@@ -142,7 +142,7 @@
   .statusDot { width: 7px; height: 7px; border-radius: 50%; background: transparent; transition: background .2s; }
   .statusBar.busy .statusDot { background: var(--accent); animation: pulse 1.5s ease-in-out infinite; }
   @keyframes pulse { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
-  .bannerLogo { display: block; max-width: 100%; height: auto; image-rendering: pixelated; margin-bottom: 12px; }
+  .bannerLogo { display: block; width: 100%; max-width: 600px; height: auto; margin: 10px auto 18px; }
 
   /* ---------- input row ---------- */
   .inputWrap { position: relative; flex-shrink: 0; padding: 10px 22px 18px; }
@@ -875,35 +875,34 @@
       if (!s) return;
       const welcome = s.consoleEl.querySelector('.welcome');
       if (welcome) welcome.remove();
-      try {
-        const resp = await fetch('logo.ico');
-        if (resp.ok) {
-          const img = document.createElement('img');
-          img.className = 'bannerLogo';
-          img.src = 'logo.ico';
-          s.consoleEl.appendChild(img);
-        } else {
-          throw new Error('not found');
-        }
-      } catch (_) {
+      const bannerSrcs = ['logo.png', 'logo.ico', 'logo.ino'];
+      let shown = false;
+      for (const src of bannerSrcs) {
         try {
-          const resp = await fetch('logo.ino');
-          if (resp.ok) {
+          const resp = await fetch(src);
+          if (!resp.ok) continue;
+          if (src.endsWith('.ino')) {
             const art = document.createElement('div');
             art.className = 'out ok art';
             art.style.whiteSpace = 'pre-wrap';
             art.textContent = await resp.text();
             s.consoleEl.appendChild(art);
           } else {
-            throw new Error('not found');
+            const img = document.createElement('img');
+            img.className = 'bannerLogo';
+            img.src = src;
+            s.consoleEl.appendChild(img);
           }
-        } catch (_2) {
-          const art = document.createElement('div');
-          art.className = 'out ok art';
-          art.style.whiteSpace = 'pre-wrap';
-          art.textContent = STARTUP_BANNER;
-          s.consoleEl.appendChild(art);
-        }
+          shown = true;
+          break;
+        } catch (_) {}
+      }
+      if (!shown) {
+        const art = document.createElement('div');
+        art.className = 'out ok art';
+        art.style.whiteSpace = 'pre-wrap';
+        art.textContent = STARTUP_BANNER;
+        s.consoleEl.appendChild(art);
       }
       s.consoleEl.scrollTop = s.consoleEl.scrollHeight;
     })();
